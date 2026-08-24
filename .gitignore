@@ -1,0 +1,36 @@
+# ===== Java / Maven =====
+backend/target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# ===== Node / Next.js =====
+node_modules/
+.next/
+out/
+build/
+frontend/.env*.local
+npm-debug.log*
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ===== IDE / 系统 =====
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ===== 环境变量与密钥 =====
+.env
+.env.*
+!.env.example
+
+# ===== 日志与临时文件 =====
+*.log
+logs/
+tmp/
