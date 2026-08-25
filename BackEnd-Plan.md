@@ -14,7 +14,9 @@
 | Redis | 8.x | 限流、验证码、Refresh token 白名单、分片进度。SSPL 许可自托管个人使用无碍 |
 | ip2region | v3.17.0（xdb） | 离线 IP 定位，IPv4/IPv6、微秒级查询；`BufferCache` 全量内存（xdb 约 11MB） |
 | LangChain4j | 1.19.0 | 统一 Ollama（本地）+ DeepSeek（OpenAI 兼容协议）双 provider |
-| 验证码 | easy-captcha | 图形验证码（Boot 4.x 兼容性待集成期验证，备选 Hutool Captcha） |
+| 验证码 | Hutool Captcha 5.8.x | 图形验证码（纯 AWT 实现）。原方案 easy-captcha 依赖 javax.servlet-api，与 Boot 4（Jakarta EE 11）冲突，按预案切换 Hutool |
+| JWT | jjwt 0.12.x | Access/Refresh 双 token（HMAC-SHA256），见 §4.2 |
+| OSS SDK | aliyun-sdk-oss 3.17.x | 私有 Bucket 分片上传（CompleteMultipartUpload），见 §8 |
 | 构建/部署 | Maven + Docker Compose | 需求指定 |
 | Python agent | Python 3.12 + FastAPI | 书籍 txt 分章等 agent 任务（需求明确"java 不好写就用 python"） |
 
@@ -109,7 +111,7 @@ top.heyqing.aether
 | 0 | 成功 | — |
 | 1xxxx | 通用错误 | 10001 参数错误 / 10002 资源不存在 / 10003 操作频繁 / 10004 数据校验失败 / 10005 文件类型不支持 / 10006 文件大小超限 |
 | 2xxxx | 认证错误 | 20001 未认证 / 20002 token 过期 / 20003 密码错误 / 20004 验证码错误或已过期 / 20005 账号已锁定 / 20006 refresh token 无效 |
-| 3xxxx | 业务错误 | 300xx 文章（30001 文章不存在）301xx 图集 302xx 视频 303xx 音乐 304xx 书籍（30401 分章任务不存在）305xx 存储（30501 分片缺失 30502 上传会话不存在）306xx 公告 307xx 订阅（30701 邮箱格式错误 30702 该 IP 问卷已提交 30703 问卷修改次数已用完）308xx AI（30801 AI 服务不可用 30802 生成失败 30803 当日使用次数已达上限） |
+| 3xxxx | 业务错误 | 300xx 文章（30001 文章不存在）301xx 图集 302xx 视频 303xx 音乐 304xx 书籍（30401 分章任务不存在）305xx 存储（30501 分片缺失 30502 上传会话不存在 30503 文件校验失败（合并后 SHA-256 不一致））306xx 公告 307xx 订阅（30701 邮箱格式错误 30702 该 IP 问卷已提交 30703 问卷修改次数已用完）308xx AI（30801 AI 服务不可用 30802 生成失败 30803 当日使用次数已达上限） |
 | 5xxxx | 系统错误 | 50001 系统内部错误 / 50002 存储服务异常 / 50003 AI 服务异常 / 50004 数据库异常 |
 
 ### 3.3 全局异常处理
@@ -121,7 +123,7 @@ top.heyqing.aether
 
 ### 4.1 cryptex 登录与暴力破解防护
 
-单账户登录：**仅输入密码**（用户名内部固定为 `cryptex`，登录接口不收用户名），密码即需求中的 cryptex，默认 `heyqing2aether`。三级防护（全部基于 Redis）：
+单账户登录：**仅输入密码**（用户名内部固定为 `cryptex`，登录接口不收用户名），密码即需求中的 cryptex，默认 `heyqing2aether`。三级防护（基于 CacheStore 抽象，默认 Redis 实现；dev 环境 Redis 未就绪时经 `aether.cache.store=memory` 切换内存实现回退，与 H2 回退同理）：
 
 | 级别 | 触发条件 | 措施 |
 | --- | --- | --- |
@@ -141,6 +143,7 @@ top.heyqing.aether
 
 - 选 JWT 理由：header 携带天然免 CSRF；无状态便于 nginx 水平扩展；refresh 存 Redis 可随时强制失效
 - Access 负载：`{userId, role, jti, iat, exp}`，HMAC-SHA256（密钥环境变量注入）
+- 缓存层：限流计数/验证码/refresh 白名单统一走 `CacheStore` 接口（set/get/getAndDelete/setIfAbsent/increment/windowAdd/windowCount），Redis 实现用于 prod，内存实现（ConcurrentHashMap + 窗口队列）用于 dev 回退，`@ConditionalOnProperty` 按 `aether.cache.store` 装配（仅 prod 允许 redis，dev 默认 memory）
 - 刷新接口校验 Cookie + 白名单 + 轮换，防 refresh 重放
 
 ### 4.3 CSRF / XSS / 注入
@@ -939,6 +942,7 @@ public interface StorageService {
     InputStream open(String objectKey);                           // 读取（本地零拷贝/OSS 流）
     String getSignedUrl(String objectKey, long expiresSeconds);   // 短时效签名 URL（OSS）
     boolean exists(String objectKey);
+    String initMultipart(UploadContext ctx);                      // 初始化分片会话（OSS 返回 uploadId；本地无需，默认返回 null）
 }
 ```
 
@@ -1080,6 +1084,6 @@ location /aether/ {
 
 ## 附录 B：遗留问题
 
-1. easy-captcha 对 Spring Boot 4.x 的兼容性待集成期验证，备选 Hutool Captcha
+1. ~~easy-captcha 兼容性~~：已确认与 Boot 4 冲突（javax.servlet-api），按预案切换 Hutool Captcha（§1）；OSS 分片上传需真实凭据联调，留待阶段 9 部署环境验证
 2. ip2region xdb 数据文件定期更新策略（随镜像打包 + 定时拉取）
 3. DeepSeek 供应商为 DeepSeek 时的 SSRF 面（仅出站 API 调用，无回源，风险低）

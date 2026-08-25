@@ -35,6 +35,9 @@ Thumbs.db
 logs/
 tmp/
 
+# ===== 后端本地存储（dev 上传文件落盘目录，生产走卷挂载）=====
+backend/data/
+
 # ===== Claude Code 开发体系（测试门禁，见 .claude/）=====
 .claude/settings.local.json
 .claude/.test-pass.json
