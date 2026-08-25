@@ -31,9 +31,10 @@
 
 ### 1.3 当前阶段
 
-- 项目状态：**阶段 0 已完成**（脚手架验收通过），进入阶段 1（后端基础）
-- 说明：dev docker-compose 文件已就绪（deploy/docker-compose.dev.yml），Docker 环境按用户要求在项目末期统一安装，届时运行验证；本地开发暂用后端 dev profile（H2 内存库）回退方案
+- 项目状态：**阶段 1 已完成**（2026-08-25，12 个测试全绿 + 冒烟验证通过），进入阶段 2（用户+文章）
+- 说明：dev docker-compose 文件已就绪（deploy/docker-compose.dev.yml），Docker 环境按用户要求在项目末期统一安装，届时运行验证；本地开发暂用后端 dev profile 回退方案（H2 内存库 + 内存 CacheStore）
 - 提前完成：阶段 2 的设计基调确认已提前执行（2026-08-24，站长选定方案 D · 羊皮卷，展示页仅本地保留（design/moodboards/，不入库），tokens 与 LOGO 定稿见 UI-Plan §2/§3）
+- 阶段 1 实现适配记录（BackEnd-Plan 已同步）：Hutool Captcha 替代 easy-captcha（javax.servlet 冲突）；CacheStore 抽象（Redis/内存双实现，dev 回退）；Boot 4.1 模块化适配（无 starter-aop 改用 spring-aop+aspectjweaver、MockMvc 测试模块 spring-boot-starter-webmvc-test、Jackson 3 tools.jackson 包名、Argon2 需显式引 bcprov-jdk18on、Hibernate 7 @Comment 已废弃故表注释以 schema-mysql.sql 为准）
 
 ## 2 开发阶段
 
@@ -143,7 +144,7 @@
 | 阶段 | 内容 | 依赖 | 状态 |
 | --- | --- | --- | --- |
 | 0 | 项目脚手架 | 无 | ✅ 已完成（2026-08-24） |
-| 1 | 后端基础 | 0 | ⬜ 待开始 |
+| 1 | 后端基础 | 0 | ✅ 已完成（2026-08-25） |
 | 2 | 用户+文章 | 1 | ⬜ 待开始 |
 | 3 | 视频+图片 | 1 | ⬜ 待开始 |
 | 4 | 音乐 | 1 | ⬜ 待开始 |
