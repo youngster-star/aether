@@ -171,8 +171,9 @@ GET /aether/api/v1/storage/file/{fileId}?expires=1785000000&sign=abc123...
 ### 4.5 上传安全
 
 - 类型白名单：扩展名 + 文件魔数双重校验（图片 jpg/png/gif/webp、视频 mp4/webm、音频 mp3/flac/wav/aac/m4a、文本 txt/md）
-- 大小限制：单文件上限 2GB（分片后每片 8MB，不影响）；图片上传前 EXIF 抹除定位信息
+- 大小限制：单文件上限 2GB（分片后每片 8MB，不影响）；图片上传前 EXIF 抹除定位信息（**实现排期：阶段 3 图集上传前完成，阶段 1 通用上传链路不含此处理**）
 - 存储名一律 UUID（防路径穿越），用户原始文件名仅存 `original_name` 字段
+- 客户端 IP 以 nginx `X-Real-IP`（覆盖式设置，§11.3）为准，不信任客户端可控的 X-Forwarded-For
 
 ### 4.6 游客 IP 分析
 
