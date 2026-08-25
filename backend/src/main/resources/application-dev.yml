@@ -1,5 +1,5 @@
 # dev profile：docker 中间件（MySQL/Redis）就绪前的本地开发回退方案
-# 使用 H2 内存库（MySQL 兼容模式），docker 环境搭好后切回默认配置（application.yml）
+# 使用 H2 内存库（MySQL 兼容模式）+ 内存缓存实现，docker 环境搭好后切回默认配置（application.yml）
 spring:
   datasource:
     url: jdbc:h2:mem:aether;MODE=MySQL;DB_CLOSE_DELAY=-1
@@ -14,3 +14,16 @@ spring:
     console:
       enabled: true
       path: /h2-console
+
+aether:
+  cache:
+    # 内存缓存回退（Redis 未就绪；单实例 dev 可用）
+    store: memory
+  jwt:
+    # 仅 dev 默认密钥，生产必须经 JWT_SECRET 环境变量注入
+    secret: dev-only-jwt-secret-aether-2026-0123456789abcdef
+    refresh-secure: false
+  storage:
+    # 仅 dev 默认签名密钥，生产必须经 SIGN_SECRET 环境变量注入
+    sign-secret: dev-only-sign-secret-aether-2026-0123456789abcdef
+    local-base-dir: ./data/storage

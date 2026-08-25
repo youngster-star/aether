@@ -14,7 +14,7 @@ spring:
     password: ${DB_PASSWORD:}
   jpa:
     hibernate:
-      # 生产环境由 Flyway/手动迁移管理表结构，禁止自动建表
+      # 生产环境表结构以 schema-mysql.sql 为准，禁止自动建表
       ddl-auto: none
     open-in-view: false
   data:
@@ -22,6 +22,30 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+  servlet:
+    multipart:
+      # 单分片 8MB + 余量（合并走接口不占 multipart）
+      max-file-size: 16MB
+      max-request-size: 16MB
+
+# ===== Aether 业务配置（BackEnd-Plan §4/§8） =====
+aether:
+  cache:
+    # 缓存实现：redis（prod）/ memory（dev 回退，Redis 未就绪时）
+    store: ${CACHE_STORE:redis}
+  jwt:
+    # 签名密钥：生产必须环境变量注入（≥32 字节）；dev 默认值见 application-dev.yml
+    secret: ${JWT_SECRET:}
+    access-expire-minutes: 30
+    refresh-expire-days: 7
+    # Refresh Cookie Secure：https 环境开启（dev http 环境覆盖为 false）
+    refresh-secure: ${JWT_REFRESH_SECURE:true}
+  storage:
+    local-base-dir: ${STORAGE_DIR:./data/storage}
+    chunk-size-mb: 8
+    # 签名 URL 密钥：生产必须环境变量注入；dev 默认值见 application-dev.yml
+    sign-secret: ${SIGN_SECRET:}
+    sign-expire-seconds: 600
 
 management:
   endpoints:

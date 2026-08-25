@@ -2,6 +2,7 @@ package top.heyqing.aether;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 /**
  * Aether（以太）个人网站后端启动类
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * 外部访问前缀统一为 www.heyqing.top/aether/api，代码中禁止硬编码路径前缀。</p>
  */
 @SpringBootApplication
+@ConfigurationPropertiesScan
 public class AetherApplication {
 
     public static void main(String[] args) {

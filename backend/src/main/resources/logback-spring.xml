@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Logback 配置（BackEnd-Plan §10）
+  控制台输出带 requestId（MDC，由 RequestIdFilter 写入）贯穿全链路排障；
+  生产环境按天滚动/30 天保留的 RollingFileAppender 于部署阶段（阶段 9）补充。
+-->
+<configuration>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{requestId}] %logger{40} - %msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- Hibernate SQL 参数值（dev 排查用，生产降级 WARN） -->
+    <logger name="org.hibernate.SQL" level="DEBUG"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
