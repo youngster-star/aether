@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git push*)",
+        "hooks": [
+          { "type": "command", "command": "node .claude/hooks/pre-push-gate.js" }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(mvn *)",
+      "Bash(npm run *)",
+      "Bash(node .claude/hooks/*)",
+      "Bash(bash scripts/*)"
+    ]
+  }
+}

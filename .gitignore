@@ -34,3 +34,15 @@ Thumbs.db
 *.log
 logs/
 tmp/
+
+# ===== Claude Code 开发体系（测试门禁，见 .claude/）=====
+.claude/settings.local.json
+.claude/.test-pass.json
+.claude/test-reports/
+
+# ===== Next.js 自动生成（next dev 会本地再生，不提交）=====
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# ===== 设计选型开发文件（仅本地保留）=====
+design/

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Aether 测试门禁（git 原生 pre-push 兜底 hook）
+#
+# 拦截场景：在终端手动敲 git push 时（Claude Code 内由 .claude/hooks/pre-push-gate.js 拦截）
+# 逻辑与 Claude 侧 hook 一致：
+#   1. 纯文档改动（md/txt）→ 放行
+#   2. .claude/.test-pass.json 有效（HEAD 匹配 + 24h 内）→ 放行
+#   3. 否则阻止（git push --no-verify 由 git 自身处理跳过本 hook）
+#
+# stdin：每行 "<local ref> <local sha> <remote ref> <remote sha>"
+# 初始化：bash scripts/setup-hooks.sh（git config core.hooksPath .githooks）
+
+set -u
+
+PASS_FILE=".claude/.test-pass.json"
+DOCS_ONLY=1
+
+# 汇总本次推送所有 ref 的改动文件，判定是否纯文档改动
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "$local_ref" ] && continue
+  # 删除分支（local_sha 全 0）：无新增代码，跳过
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    # 远程分支不存在（首次推送）：取该提交的文件
+    FILES=$(git diff-tree --no-commit-id --name-only -r "$local_sha" 2>/dev/null || echo "")
+  else
+    FILES=$(git diff --name-only "$remote_sha".."$local_sha" 2>/dev/null || echo "")
+  fi
+  if [ -z "$FILES" ]; then
+    # 改动内容无法判定：保守处理，不算纯文档（要求测试标记）
+    DOCS_ONLY=0
+    continue
+  fi
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    case "$f" in
+      *.md | *.txt) ;;
+      *) DOCS_ONLY=0 ;;
+    esac
+  done <<< "$FILES"
+done
+
+# 纯文档改动放行
+if [ "$DOCS_ONLY" = "1" ]; then
+  exit 0
+fi
+
+# 检查测试通过标记
+if [ -f "$PASS_FILE" ]; then
+  HEAD=$(git rev-parse HEAD)
+  PASS_HEAD=$(sed -n 's/.*"head"[[:space:]]*:[[:space:]]*"\([a-f0-9]*\)".*/\1/p' "$PASS_FILE")
+  PASS_TS=$(sed -n 's/.*"timestamp"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p' "$PASS_FILE")
+  NOW_MS=$(date +%s%3N 2>/dev/null || echo $(( $(date +%s) * 1000 )))
+  if [ "$PASS_HEAD" = "$HEAD" ] && [ -n "$PASS_TS" ] && [ $(( NOW_MS - PASS_TS )) -lt 86400000 ]; then
+    exit 0
+  fi
+fi
+
+echo ""
+echo "=============================================================="
+echo " Aether 测试门禁：push 被阻止"
+echo " 原因：测试通过标记缺失或失效（HEAD 不匹配 / 超过 24 小时）"
+echo " 处理：在 Claude Code 中运行 /test，全部维度通过后重试"
+echo " 紧急跳过：git push --no-verify（需向开发负责人说明）"
+echo "=============================================================="
+echo ""
+exit 1
