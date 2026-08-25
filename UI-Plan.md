@@ -1,10 +1,10 @@
 # Aether 前端 UI 开发文档（UI-Plan）
 
 > 本文档是基于 UI.md（原始需求，保留不动）生成的**详细前端开发方案**，作为前端开发的唯一依据。
-> 参考站：eyeondesign.aiga.org（杂志编辑风）。参考截图已逐张分析（直接查看 + Ollama 视觉模型），结论已融入各页面设计。
-> 文档版本：v1.0（2026-08-24）
+> 参考站：eyeondesign.aiga.org（杂志编辑风，供版式参考）。参考截图已逐张分析（直接查看 + Ollama 视觉模型），结论已融入各页面设计。
+> 文档版本：v1.1（2026-08-24）
 >
-> ⚠️ **待确认项**：设计基调（§2）当前为**默认方案 A（占位）**，开发阶段将生成多套基调 HTML 展示页（配色/字体/版式对比）供站长选定后定稿；LOGO 方案（§3）随基调确认后生成。
+> ✅ **设计基调已确认（2026-08-24）**：站长从五套候选展示页（`design/moodboards/`，仅本地保留不入库）中选定**方案 D · 羊皮卷 — 古典文学**（全衬线、纸张纹理、装帧书脊封面），§2 设计系统与 §3 LOGO 方案均已定稿。
 
 ## 1 技术选型
 
@@ -25,67 +25,88 @@
 
 ## 2 设计系统
 
-### 2.1 设计基调（默认方案 A，待多套展示后确认）
+### 2.1 设计基调（✅ 已定稿：方案 D · 羊皮卷 — 古典文学）
 
-继承参考站"杂志编辑风"：暖纸底色、超大号粗体标题、高饱和强调色分区、卡片网格、极简汉堡导航；配色按"以太"气质（星界/流动/静谧）定制为**暖纸白 + 墨黑 + 以太金**。
+继承参考站"杂志编辑风"的**版式骨架**（超大标题、卡片网格、极简汉堡导航、高饱和分区、hover 反色），配色与字体按"以太"气质定制为**羊皮卷古典文学风**：羊皮纸底、全衬线字体、墨褐 + 赭石 + 铜绿三色体系、旧书装帧质感（纸张纹理、书脊封面、扉页框线、卷号编号）。
 
-> **确认流程**：开发阶段（Stage 阶段 2）先产出 3-5 套基调 HTML 展示页（不同配色/字体组合的同一主页版式），站长选定后本节定稿，全站 tokens 随之锁定。
+- 气质关键词：旧书、文学、星界古典哲学源头（以太=第五元素）
+- 展示页（仅本地保留，不入库）：`design/moodboards/style-d.html`（含全部交互演示与 light/night 双主题）
 
-### 2.2 颜色 Tokens（light / night 两套 CSS 变量，方案 A 占位值）
+### 2.2 颜色 Tokens（✅ 定稿：羊皮卷，light / night 两套 CSS 变量）
 
 ```css
 :root {
   /* 中性 */
-  --background: #F7F4EC;   /* 暖纸白（页面底） */
-  --foreground: #1A1B1F;   /* 墨黑（文字） */
-  --card: #FFFFFF;         /* 卡片底 */
-  --muted: #6E6F76;        /* 次级文字 */
-  --border: #E3DED0;       /* 描边 */
+  --background: #F3EAD8;   /* 羊皮纸（页面底） */
+  --foreground: #2B2118;   /* 墨褐（文字） */
+  --card: #FBF5E8;         /* 书页卡底 */
+  --muted: #7A6A55;        /* 褐灰（次级文字） */
+  --border: #D9C9A8;       /* 淡褐（描边） */
   /* 主色与强调 */
-  --primary: #1A1B1F;      /* 主色（按钮/链接） */
-  --accent: #E8C94A;       /* 以太金（强调分区/悬停反色/hover） */
-  --highlight: #FFE566;    /* 荧光高亮（highlighter 组件） */
+  --primary: #2B2118;      /* 墨褐（按钮/链接主色，hover 反色） */
+  --accent: #8C5B2D;       /* 赭石（强调/悬停反色/热门排名数字） */
+  --accent-2: #4F6D5A;     /* 铜绿（副强调：公告 tag/认证/装饰线） */
+  --highlight: #E8C98A;    /* 书签金（::selection 高亮/荧光标注） */
   /* 功能色 */
-  --success: #3A9B5D;
-  --danger: #D64545;
-  /* 圆角 */
-  --radius-sm: 4px;  --radius-md: 8px;  --radius-lg: 12px;  --radius-pill: 999px;
+  --success: #4A7A5A;
+  --danger: #B0442E;
+  /* 圆角（克制：3 小元素 / 6 图片 / 8 卡片 / 12 大分区 / 999 pill） */
+  --radius-sm: 3px;  --radius-md: 6px;  --radius-lg: 8px;  --radius-xl: 12px;  --radius-pill: 999px;
+  /* 阴影（暖褐调） */
+  --shadow: 0 2px 14px rgba(43, 33, 24, .10);
 }
 
 .dark {
-  --background: #0F1013;   /* 深空底 */
-  --foreground: #EDEBE3;   /* 暖白前景 */
-  --card: #17181C;
-  --muted: #9A9BA1;
-  --border: #26272C;
-  --primary: #EDEBE3;
-  --accent: #F2CE4F;       /* dark 下同系金 */
-  --highlight: #C9A92C;
-  --success: #4CAF73;
-  --danger: #E05B5B;
+  /* 深夜书房：烛光褐金 */
+  --background: #1E1812;   /* 深褐黑底 */
+  --foreground: #E8DCC3;   /* 烛光米白（前景） */
+  --card: #262019;
+  --muted: #A08D72;
+  --border: #3A2F22;
+  --primary: #E8DCC3;
+  --accent: #C68B4E;       /* 烛光赭 */
+  --accent-2: #6E8F79;     /* 旧铜绿 */
+  --highlight: #B99A5B;
+  --success: #6E8F79;
+  --danger: #D9765C;
+  --shadow: 0 2px 14px rgba(0, 0, 0, .5);
 }
 ```
 
-### 2.3 字体（方案 A）
+Tailwind 4 落地：以上变量经 `@theme` 映射为 `bg-background` / `text-foreground` / `border-border` / `bg-accent` 等工具类（阶段 2 globals.css 落地）。
+
+**纸张纹理**（body 叠层，CSS 噪点近似羊皮纸质感，`pointer-events: none`）：
+
+```css
+body::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.47 0 0 0 0 0.35 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .5;              /* dark 下建议降至 .2（深底噪点易脏） */
+}
+body > * { position: relative; z-index: 1; }
+```
+
+### 2.3 字体（✅ 定稿：全衬线）
 
 | 用途 | 拉丁 | 中文 | 说明 |
 | --- | --- | --- | --- |
-| 标题 | Fraunces（衬线，编辑感） | Noto Serif SC 900 | `--font-display` 变量驱动，文章独立样式可覆盖 |
-| 正文 | Inter | Noto Sans SC | `--font-body` |
+| 标题 | Source Serif 4（衬线，可变 opsz/wght 300-900） | Noto Serif SC 900 | `--font-display` 变量驱动，文章独立样式可覆盖 |
+| 正文 | Source Serif 4 | Noto Serif SC | `--font-body`，全站衬线（书籍正文气质） |
 | 代码 | JetBrains Mono | — | 代码块/行内代码 |
 
-> 全部走 `next/font/google` 自托管（国内访问稳定），fallback 系统字体。
+> 全部走 `next/font/google` 自托管（国内访问稳定），fallback 系统字体栈：`"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif`（中文）/ `Georgia, "Times New Roman", serif`（拉丁）。
 
 ### 2.4 排版与间距
 
 | Token | 值 |
 | --- | --- |
 | 字号阶梯 | 12 / 14 / 16 / 18 / 20 / 24 / 30 / 36 / 48 / 64（px）；正文 16，文章内容区默认 17-18（可配） |
-| 行高 | 正文 1.7，标题 1.15 |
+| 行高 | 正文 1.9（书卷宽松行距），标题 1.3 |
 | 间距 | 4px 基准：4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 / 96 |
 | 容器 | `max-w-6xl`（1152px），文章内容区 720px |
-| 圆角 | 克制：4（小元素）/ 8（图片）/ 12（卡片）/ 999（pill 按钮） |
-| 阴影 | light：`0 2px 12px rgba(26,27,31,.06)`；dark：`0 2px 12px rgba(0,0,0,.4)` |
+| 圆角 | 克制：3（小元素）/ 6（图片）/ 8（卡片）/ 12（大分区）/ 999（pill 按钮） |
+| 阴影 | light：`0 2px 14px rgba(43,33,24,.10)`（暖褐）；dark：`0 2px 14px rgba(0,0,0,.5)` |
+| 区块装饰 | 区块标题双线饰线（下边框 + accent 双线短条）；书籍/图集/音乐编号用中文卷号"卷 一"（§6.1 版式） |
 
 ### 2.5 动效规范
 
@@ -123,26 +144,120 @@
 }
 ```
 
-## 3 LOGO 方案（草案，待基调确认后生成具体方案）
+## 3 LOGO 方案（✅ 已定稿：羊皮卷 · 古典文学风）
 
-> ⚠️ 本节为方向性草案：设计基调（§2）经多套 HTML 展示确认后，再按选定基调生成具体 LOGO 方案与 ComfyUI prompt，届时更新本节并生成样例供确认。
+### 3.1 视觉语言
 
-### 3.1 方向要点
+- 主题：以太（Aether）——古典哲学第五元素、星界之气、流动与静谧，与"羊皮卷"古典文学基调呼应
+- 风格：**蚀刻版画（etching/woodcut）线条** + 藏书票（bookplate）气质，细线雕刻感，禁现代扁平/霓虹
+- 主图形：**以太光环**（同心圆环）+ 中央羽笔与展开书页剪影
+- 配色：羊皮纸底 `#F3EAD8`、墨褐线条 `#2B2118`、赭石点缀 `#8C5B2D`、铜绿副色 `#4F6D5A`
+- 形态：① web 图片 LOGO（ComfyUI，§3.2）；② SVG 文字 LOGO（§3.3）；③ JS 光环加载动画（§3.4）；④ favicon / og-image / 管理端小标（§3.5）
 
-- 主题：以太（Aether）——古典哲学第五元素、星界之气、流动与静谧
-- 元素：发光圆环/星云光晕 + 暖金主色（与选定基调 accent 一致）
-- 形态：① web 图片 LOGO（ComfyUI 生成，给出 prompt，多尺寸 + 透明底）；② 文字 LOGO（"Aether" SVG 字标 + 描边流光/字母悬浮动画，light/dark 自适应）；③ JS 加载动画（**以太光环**：同心圆环由闭到开、由暗到亮"苏醒"动画，呼应参考站"眼睛由闭到睁"，用于 loading 与首页版权区滚动展开 LOGO）；④ favicon / og-image / 管理端小标规格清单
-
-### 3.2 占位 ComfyUI prompt 模板（基调确认后精修）
+### 3.2 ComfyUI prompt（图片 LOGO）
 
 ```text
-Positive prompt: minimalist logo, ethereal glowing ring, concentric orbital rings,
-soft nebula halo, warm golden light on deep ink background,
-ancient Greek "aether" fifth element concept, elegant line art, vector style,
+Positive prompt: minimalist vintage logo, concentric orbital rings forming an
+aether halo, antique quill pen crossing an open book silhouette at center,
+fine line engraving, woodcut etching style, classical literature bookplate
+aesthetic, parchment cream background (#F3EAD8), ink brown linework (#2B2118),
+ochre accents (#8C5B2D), verdigris green secondary accents (#4F6D5A),
+ancient Greek "aether" fifth element concept, elegant thin lines,
 centered composition, high contrast, clean edges, no text
-Negative prompt: text, letters, watermark, photorealistic, busy background,
-blurry, low quality, multiple objects
+
+Negative prompt: text, letters, words, watermark, signature, photorealistic,
+3d render, photograph, busy background, blurry, low quality, jpeg artifacts,
+multiple objects, modern flat design, neon colors, bright saturated colors
 ```
+
+生成参数建议：SDXL 或 Flux 模型，1024×1024，steps 30，cfg 7，无负面词叠加；出图后用 PS/remove.bg 抠透明底，导出 1024 / 512 / 256 / 64 四档 PNG（favicon 用 64）。生成多张候选后站长挑选，落盘 `frontend/public/logo/`（命名 `aether-logo-{size}.png`）。
+
+### 3.3 SVG 文字 LOGO（字标，light/dark 自适应）
+
+静态版（Navbar 用）：衬线大写 "AETHER" + 上方以太光环符 + 下方双线饰线；颜色用 CSS 变量，主题切换自动适配。
+
+```html
+<!-- 静态字标：nav / footer 通用（fill 用 var(--foreground)，光环用 var(--accent)） -->
+<svg class="aether-wordmark" viewBox="0 0 360 100" role="img" aria-label="Aether">
+  <!-- 以太光环符：外环 + 内环 + 中心点 -->
+  <circle cx="180" cy="22" r="13" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+  <circle cx="180" cy="22" r="7"  fill="none" stroke="var(--accent-2)" stroke-width="1.5"/>
+  <circle cx="180" cy="22" r="2"  fill="var(--accent)"/>
+  <!-- 字标 -->
+  <text x="180" y="66" text-anchor="middle" font-family="'Source Serif 4','Noto Serif SC',Georgia,serif"
+        font-weight="900" font-size="44" letter-spacing="10" fill="var(--foreground)">AETHER</text>
+  <!-- 双线饰线：两端细线 + 中心菱形 -->
+  <path d="M 88 82 H 172 M 188 82 H 272" stroke="var(--border)" stroke-width="1"/>
+  <rect x="176" y="78" width="8" height="8" transform="rotate(45 180 82)" fill="var(--accent)"/>
+</svg>
+```
+
+动画版（Hero / 加载过渡用）：光环先"苏醒"，字母逐字上浮入场（stagger），随后饰线展开。
+
+```html
+<!-- 动画字标：光环苏醒 → 字母逐字浮现 → 饰线展开（CSS 动画，无需 JS） -->
+<svg class="aether-wordmark animated" viewBox="0 0 360 100" role="img" aria-label="Aether">
+  <style>
+    .aether-wordmark.animated .halo-o { stroke-dasharray: 82; stroke-dashoffset: 82; animation: halo 1s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .aether-wordmark.animated .halo-i { opacity: 0; animation: halo-in .6s ease .5s forwards; }
+    .aether-wordmark.animated .halo-c { opacity: 0; animation: halo-in .4s ease .8s forwards; }
+    .aether-wordmark.animated .letter { opacity: 0; transform: translateY(14px); animation: rise .6s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .aether-wordmark.animated .rule { stroke-dasharray: 84; stroke-dashoffset: 84; animation: halo 1.2s ease .4s forwards; }
+    .aether-wordmark.animated .diamond { opacity: 0; animation: halo-in .4s ease 1.3s forwards; }
+    @keyframes halo { to { stroke-dashoffset: 0; } }
+    @keyframes halo-in { to { opacity: 1; } }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+    /* 字母 stagger：A 起 0.35s，步进 0.12s */
+    .letter:nth-of-type(1) { animation-delay: .35s; } .letter:nth-of-type(2) { animation-delay: .47s; }
+    .letter:nth-of-type(3) { animation-delay: .59s; } .letter:nth-of-type(4) { animation-delay: .71s; }
+    .letter:nth-of-type(5) { animation-delay: .83s; } .letter:nth-of-type(6) { animation-delay: .95s; }
+    @media (prefers-reduced-motion: reduce) {
+      .aether-wordmark.animated * { animation: none !important; opacity: 1 !important; stroke-dashoffset: 0 !important; transform: none !important; }
+    }
+  </style>
+  <circle class="halo-o" cx="180" cy="22" r="13" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+  <circle class="halo-i" cx="180" cy="22" r="7" fill="none" stroke="var(--accent-2)" stroke-width="1.5"/>
+  <circle class="halo-c" cx="180" cy="22" r="2" fill="var(--accent)"/>
+  <text x="180" y="66" text-anchor="middle" font-family="'Source Serif 4','Noto Serif SC',Georgia,serif"
+        font-weight="900" font-size="44" letter-spacing="10" fill="var(--foreground)">
+    <tspan class="letter">A</tspan><tspan class="letter">E</tspan><tspan class="letter">T</tspan>
+    <tspan class="letter">H</tspan><tspan class="letter">E</tspan><tspan class="letter">R</tspan>
+  </text>
+  <path class="rule" d="M 88 82 H 172 M 188 82 H 272" stroke="var(--border)" stroke-width="1"/>
+  <rect class="diamond" x="176" y="78" width="8" height="8" transform="rotate(45 180 82)" fill="var(--accent)"/>
+</svg>
+```
+
+注意：SVG `<tspan>` 不支持 letter-spacing（部分浏览器忽略），阶段 2 落地时字母间距改用 `dx` 逐字偏移实现，此处为动画结构参考。
+
+### 3.4 JS 光环加载动画（AetherRing）
+
+同心圆环由闭到开、由暗到亮"苏醒"（呼应参考站眼睛由闭到睁），两处复用：
+
+| 位置 | 行为 |
+| --- | --- |
+| 页面加载 loading | 全屏遮罩中央播放，动画完成（约 1.9s）后淡出遮罩 |
+| 首页版权区 | 滚动进入视口（IntersectionObserver，threshold 0.4）触发播放，不循环 |
+
+参数规格：
+
+| 参数 | 值 |
+| --- | --- |
+| 环数 | 4（半径 60 / 105 / 150 / 195 px，交替 accent / accent-2 描边 1-2px）+ 中心亮点（8px 圆，box-shadow 光晕） |
+| 动画 | 每环 `scale .55→1` + `opacity 0→.9`，时长 1.4s，缓动 `cubic-bezier(0.22,1,0.36,1)`，stagger 120ms；中心亮点 delay 480ms；下方 "AETHER" 字标 1s 后淡入 |
+| 无障碍 | `prefers-reduced-motion` 时跳过动画直接呈现最终状态 |
+| 组件接口 | `components/layout/AetherRing.tsx`：`<AetherRing trigger: "loading" | "scroll" />`，阶段 2 落地；CSS 参考实现见本地展示页 `design/moodboards/style-d.html`（不入库）版权区（`#ringStage`） |
+
+### 3.5 favicon / og-image / 管理端小标
+
+| 产物 | 规格 | 说明 |
+| --- | --- | --- |
+| favicon | 64×64 透明 PNG（图片 LOGO 缩小版）+ `favicon.ico` 打包 | 蚀刻线条在 16px 下会糊，favicon 简化为**单环 + 中心点**（§3.3 光环符），可另出 SVG favicon 并 `media="(prefers-color-scheme: dark)"` 双版 |
+| og-image | 1200×630：羊皮纸底 + 字标 + 光环，右下角铜绿"❧"装饰 | 由 §3.2 图片 LOGO 排版合成（非 AI 直出） |
+| 管理端小标 | 32×32：单环 + 中心点（cryptex 登录页与侧栏用） | 复用 favicon 图形 |
+| apple-touch-icon | 180×180 PNG | 羊皮纸底圆角方形版 |
+
+生成物落盘 `frontend/public/logo/`，命名 `aether-{logo|favicon|og|touch}-{size}.png`。
 
 ## 4 工程结构与路由
 
@@ -489,8 +604,8 @@ npm install framer-motion next-themes next-intl dompurify echarts artplayer
 
 ### 12.3 待办与遗留问题
 
-1. **设计基调确认**：生成 3-5 套基调 HTML 展示页（配色/字体/版式对比）供站长选定 → 定稿 §2 tokens → 生成 LOGO 方案（§3）→ 全站统一落地
-2. 中文衬线标题字体 Noto Serif SC 体积较大，需子集化/按需加载（`next/font` display=swap）
+1. ~~设计基调确认~~ ✅ 已完成（2026-08-24）：站长选定方案 D · 羊皮卷（展示页 design/moodboards/style-d.html，仅本地保留不入库），§2 tokens 与 §3 LOGO 已定稿；阶段 2 前端按本文档落地
+2. 中文衬线字体（标题 Noto Serif SC 900 + 正文 Noto Serif SC）体积较大且全站使用，需子集化/按需加载（`next/font` display=swap），必要时正文中文考虑系统宋体栈直用（免下载）
 3. ArtPlayer 清晰度切换依赖多码率源文件，站长上传单文件时该按钮隐藏（预留多码率扩展）
 4. 歌词时间轴：LRC 优先 + 纯文本均分兜底 + 打点校准 + 全局偏移（BackEnd-Plan §7.6）；AI 自动对齐为可选增强
 5. ECharts 中国地图 GeoJSON 数据源需随行政区划更新（打包内置）

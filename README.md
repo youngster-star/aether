@@ -52,6 +52,9 @@
 前置环境：JDK 21、Maven 3.9+、Node.js 22+、npm、（可选）Ollama（Docker 部署环境于项目末期配置）
 
 ```bash
+# 0. 测试门禁初始化（首次克隆执行一次，注册 git 原生 pre-push 兜底）
+bash scripts/setup-hooks.sh
+
 # 1. 启动中间件（mysql/redis/ollama）
 docker compose -f deploy/docker-compose.dev.yml up -d
 
@@ -66,6 +69,14 @@ cd agent && uvicorn main:app --port 8000
 ```
 
 管理端登录：地址 `/aether/cryptex/login`，**仅需输入密码**（即 cryptex），密码为环境变量 `AETHER_CRYPTEX` 配置（dev 环境默认 `heyqing2aether`，**生产环境必须修改**）。
+
+## 测试门禁（开发必读）
+
+- **git push 前必须完成 `/test` 全流程并通过**：在 Claude Code 中运行 `/test`（默认 6 维度：后端/前端/安全/注释/功能/效率；可指定如 `/test security`），全部通过后自动生成测试通过标记（24 小时有效），push 才会放行
+- 双层拦截：Claude Code hook（拦截 Claude 执行的 push）+ git 原生 pre-push（拦截终端手动 push，需 `bash scripts/setup-hooks.sh` 初始化一次）
+- 纯文档改动（.md/.txt）自动放行；紧急情况 `git push --no-verify` 跳过（需说明）
+- 提交署名仅 dkb（不加 Claude Co-Authored-By），Conventional Commits 规范
+- 测试体系详见 `.claude/`（code-tester agent + 6 维度 skill + /test 命令 + 门禁 hook），**与业务 agent/（Python 分章服务）无关**
 
 ## 部署指南
 
@@ -86,16 +97,21 @@ cd agent && uvicorn main:app --port 8000
 aether/
 ├── backend/            # Java 后端（Spring Boot）
 ├── frontend/           # Next.js 前端（用户端 + 管理端）
-├── agent/              # Python agent（书籍 AI 分章）
+├── agent/              # Python agent（书籍 AI 分章，业务服务）
 ├── deploy/             # docker-compose 与 nginx 配置
-├── docs/               # 文档
-│   ├── README.md       # 本文档
-│   ├── UI-Plan.md      # 前端开发文档
-│   ├── BackEnd-Plan.md # 后端开发文档
-│   └── Stage.md        # 开发阶段文档
+├── .claude/            # Claude Code 开发体系：测试门禁（agent/skill/hook，与业务 agent/ 无关）
+├── .githooks/          # git 原生 pre-push 测试门禁兜底
+├── scripts/            # 开发辅助脚本
 ├── assets/             # 设计参考素材
+├── CLAUDE.md           # Claude Code 开发规范
+├── README.md           # 本文档
+├── UI-Plan.md          # 前端开发文档
+├── BackEnd-Plan.md     # 后端开发文档
+├── Stage.md            # 开发阶段文档
 └── UI.md / BackEnd.md  # 原始需求文档（保留）
 ```
+
+> 设计选型展示页 design/ 为开发文件，仅本地保留不入库。
 
 ## 文档索引
 
@@ -103,4 +119,5 @@ aether/
 - [UI-Plan.md](UI-Plan.md)：前端 UI 开发文档（技术选型/设计系统/逐页面设计/交互方案）
 - [BackEnd-Plan.md](BackEnd-Plan.md)：后端开发文档（接口/表结构/安全/AI/存储/部署）
 - [Stage.md](Stage.md)：开发规范与阶段划分
+- [CLAUDE.md](CLAUDE.md)：Claude Code 开发规范（测试门禁/提交规范）
 - [UI.md](UI.md) / [BackEnd.md](BackEnd.md)：原始需求文档（开发依据，保留不动）

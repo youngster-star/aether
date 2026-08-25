@@ -27,11 +27,13 @@
 | API 版本策略 | `/api/v1` 前缀；破坏性变更升 v2 并与 v1 并存一个版本周期后下线 v1 |
 | 环境划分 | dev（本地 docker-compose）/ test（测试服务器）/ prod（www.heyqing.top/aether）；**所有配置环境变量外置**（BackEnd-Plan §11.2）；seed 测试数据仅 dev/test 执行 |
 | 文档同步 | 任何与 Plan 文档不一致的实现，先改文档再改代码；阶段完成后更新本文件"当前阶段"状态 |
+| 测试门禁 | git push 前必须 /test 全维度通过（门禁体系见 .claude/：code-tester agent + 6 维度 skill + 门禁 hook，**与业务 agent/ 无关**；纯文档改动放行，`--no-verify` 仅紧急使用）；commit 署名仅 dkb，不加 Claude Co-Authored-By |
 
 ### 1.3 当前阶段
 
 - 项目状态：**阶段 0 已完成**（脚手架验收通过），进入阶段 1（后端基础）
 - 说明：dev docker-compose 文件已就绪（deploy/docker-compose.dev.yml），Docker 环境按用户要求在项目末期统一安装，届时运行验证；本地开发暂用后端 dev profile（H2 内存库）回退方案
+- 提前完成：阶段 2 的设计基调确认已提前执行（2026-08-24，站长选定方案 D · 羊皮卷，展示页仅本地保留（design/moodboards/，不入库），tokens 与 LOGO 定稿见 UI-Plan §2/§3）
 
 ## 2 开发阶段
 
@@ -60,7 +62,7 @@
 | 项 | 内容 |
 | --- | --- |
 | 目标 | 第一个端到端业务闭环 |
-| 任务要点 | 游客 IP 分析入库 + 日统计 job（§4.6）；文章 CRUD + 独立样式 + 分类标签 + 搜索 + 阅读数 IP 去重；前端设计系统落地（UI-Plan §2）；**设计基调确认（生成多套基调 HTML 展示页 → 站长选定 → 定稿 tokens 与 LOGO，UI-Plan §12.3-1）**；主页（Hero/公告/热门文章/推荐区块）；文章列表/详情页（滚动 5-8% 吸顶栏、RELATED ARTICLES 侧边栏） |
+| 任务要点 | 游客 IP 分析入库 + 日统计 job（§4.6）；文章 CRUD + 独立样式 + 分类标签 + 搜索 + 阅读数 IP 去重；前端设计系统落地（UI-Plan §2，tokens 已定稿）；**设计基调确认 ✅（已提前完成：方案 D · 羊皮卷，展示页仅本地保留（不入库），tokens 与 LOGO 见 UI-Plan §2/§3）**；主页（Hero/公告/热门文章/推荐区块）；文章列表/详情页（滚动 5-8% 吸顶栏、RELATED ARTICLES 侧边栏） |
 | 完成标准 | 搜索（标题/简介/内容）准确；滚动吸顶 5-8% 生效；悬停反色卡片与参考风格一致；假数据可完整走通主页 → 详情 → 相关文章 |
 | 依赖 | 阶段 1 |
 
