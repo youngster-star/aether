@@ -133,9 +133,11 @@ class LoginProtectionTest {
     }
 
     /**
-     * 获取验证码并返回 captchaId
+     * 获取验证码并返回 captchaId（每次清验证码接口限流窗口：本测试不验证该限流，
+     * 场景内验证码请求次数超过每分钟 10 次阈值，需隔离避免误伤）
      */
     private String fetchCaptcha(String ip) throws Exception {
+        cacheStore.delete(SecurityConst.CAPTCHA_RATE_KEY + ip);
         String content = mockMvc.perform(get("/v1/auth/captcha").header("X-Forwarded-For", ip))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))

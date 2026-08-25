@@ -11,6 +11,9 @@ public final class SecurityConst {
     /** 登录限流滑动窗口 key 前缀（+ip） */
     public static final String LOGIN_RATE_KEY = "login:rate:";
 
+    /** 验证码接口限流滑动窗口 key 前缀（+ip，防刷占缓存） */
+    public static final String CAPTCHA_RATE_KEY = "captcha:rate:";
+
     /** 登录失败计数 key 前缀（+ip） */
     public static final String LOGIN_FAIL_KEY = "login:fail:";
 

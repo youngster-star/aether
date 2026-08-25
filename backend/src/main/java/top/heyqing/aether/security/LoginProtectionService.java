@@ -26,6 +26,9 @@ public class LoginProtectionService {
     /** 每分钟最大登录请求数 */
     private static final int RATE_LIMIT = 5;
 
+    /** 验证码接口每分钟最大请求数（防刷占缓存；TTL 自愈，阈值宽松） */
+    private static final int CAPTCHA_RATE_LIMIT = 10;
+
     /** 限流窗口 */
     private static final Duration RATE_WINDOW = Duration.ofMinutes(1);
 
@@ -60,6 +63,20 @@ public class LoginProtectionService {
         cacheStore.windowAdd(SecurityConst.LOGIN_RATE_KEY + ip, now, RATE_WINDOW);
         long count = cacheStore.windowCount(SecurityConst.LOGIN_RATE_KEY + ip, now, RATE_WINDOW);
         if (count > RATE_LIMIT) {
+            throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS);
+        }
+    }
+
+    /**
+     * 验证码接口限流：同一 IP 每分钟最多 10 次（防止恶意刷验证码占用缓存）
+     *
+     * @throws BusinessException 10003 操作频繁
+     */
+    public void checkCaptchaRate(String ip) {
+        long now = System.currentTimeMillis();
+        cacheStore.windowAdd(SecurityConst.CAPTCHA_RATE_KEY + ip, now, RATE_WINDOW);
+        long count = cacheStore.windowCount(SecurityConst.CAPTCHA_RATE_KEY + ip, now, RATE_WINDOW);
+        if (count > CAPTCHA_RATE_LIMIT) {
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS);
         }
     }

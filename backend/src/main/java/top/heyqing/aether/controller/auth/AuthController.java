@@ -43,23 +43,24 @@ public class AuthController {
     }
 
     /**
-     * 获取图形验证码（登录失败累计 3 次后前端调用）
+     * 获取图形验证码（登录失败累计 3 次后前端调用；接口本身有限流防刷）
      */
     @GetMapping("/captcha")
-    public Result<CaptchaVO> captcha() {
-        return Result.ok(authService.captcha());
+    public Result<CaptchaVO> captcha(HttpServletRequest httpRequest) {
+        return Result.ok(authService.captcha(IpUtil.clientIp(httpRequest)));
     }
 
     /**
      * 登录：仅密码；三级暴力防护（限流/验证码/锁定）见 LoginProtectionService
+     * 成功签发双 token：Access 入响应体，Refresh 写入 HttpOnly Cookie
      */
     @PostMapping("/login")
     @OperationLog(module = "认证", action = "登录")
     public Result<LoginVO> login(@Valid @RequestBody LoginRequest request,
                                  HttpServletRequest httpRequest, HttpServletResponse response) {
-        LoginVO loginVO = authService.login(request, IpUtil.clientIp(httpRequest));
-        applyRefreshCookie(response, loginVO.accessToken(), refreshMaxAgeSeconds());
-        return Result.ok(loginVO);
+        RefreshResult result = authService.login(request, IpUtil.clientIp(httpRequest));
+        applyRefreshCookie(response, result.refreshToken(), refreshMaxAgeSeconds());
+        return Result.ok(new LoginVO(result.accessToken()));
     }
 
     /**

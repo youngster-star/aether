@@ -10,7 +10,6 @@ import top.heyqing.aether.exception.BusinessException;
 import top.heyqing.aether.model.dto.LoginRequest;
 import top.heyqing.aether.model.entity.SysUser;
 import top.heyqing.aether.model.vo.CaptchaVO;
-import top.heyqing.aether.model.vo.LoginVO;
 import top.heyqing.aether.model.vo.RefreshResult;
 import top.heyqing.aether.repository.SysUserRepository;
 import top.heyqing.aether.security.CaptchaService;
@@ -48,12 +47,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public CaptchaVO captcha() {
+    public CaptchaVO captcha(String ip) {
+        // 验证码接口限流：防刷占缓存（BackEnd-Plan §4.1 辅助防护）
+        protectionService.checkCaptchaRate(ip);
         return captchaService.create();
     }
 
     @Override
-    public LoginVO login(LoginRequest request, String ip) {
+    public RefreshResult login(LoginRequest request, String ip) {
         // 级别 1：入口限流（含成功请求）
         protectionService.checkRateLimit(ip);
         // 级别 3：锁定期间直接拒绝
@@ -72,14 +73,15 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(ErrorCode.PASSWORD_ERROR);
         }
 
-        // 登录成功：重置防护状态 + 更新登录信息 + 签发双 token
+        // 登录成功：重置防护状态 + 更新登录信息 + 签发双 token（Access 入 body，Refresh 入 Cookie）
         protectionService.recordSuccess(ip);
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(ip);
         sysUserRepository.save(user);
 
         String accessToken = jwtService.createAccessToken(user.getId(), SecurityConst.ROLE_ADMIN);
-        return new LoginVO(accessToken);
+        String refreshToken = jwtService.issueRefreshToken(user.getId());
+        return new RefreshResult(accessToken, refreshToken);
     }
 
     @Override

@@ -13,8 +13,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.ObjectMapper;
+
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -111,6 +116,43 @@ class AuthSecurityTest {
                         .content("{}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(10001));
+    }
+
+    @Test
+    @DisplayName("Refresh Token 轮换链路：登录下发 Cookie → 刷新轮换 → 旧 token 重放被拒 → 登出后作废")
+    void refreshRotationRejectsReplayAndLogout() throws Exception {
+        // 登录：Refresh Token 经 HttpOnly Cookie 下发（BackEnd-Plan §4.2）
+        MvcResult loginResult = mockMvc.perform(post("/v1/auth/login")
+                        .header("X-Forwarded-For", "10.10.2.11")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody("heyqing2aether"))))
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+        Cookie refreshCookie = loginResult.getResponse().getCookie("aether_refresh");
+        assertNotNull(refreshCookie, "登录应下发 Refresh Cookie");
+
+        // 刷新：签发新 Access + 轮换新 Refresh Cookie
+        MvcResult refreshResult = mockMvc.perform(post("/v1/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andReturn();
+        Cookie rotatedCookie = refreshResult.getResponse().getCookie("aether_refresh");
+        assertNotNull(rotatedCookie, "刷新应轮换下发新 Refresh Cookie");
+        assertNotEquals(refreshCookie.getValue(), rotatedCookie.getValue(), "轮换后 Cookie 值应变化");
+
+        // 旧 Refresh Token 重放：白名单已作废 → 20006（防重放核心）
+        mockMvc.perform(post("/v1/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
+
+        // 登出：作废当前 Refresh Token
+        mockMvc.perform(post("/v1/auth/logout").cookie(rotatedCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
+        // 登出后再刷新：20006
+        mockMvc.perform(post("/v1/auth/refresh").cookie(rotatedCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(20006));
     }
 
     private record LoginBody(String password) {

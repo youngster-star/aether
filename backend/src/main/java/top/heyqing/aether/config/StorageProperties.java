@@ -1,6 +1,10 @@
 package top.heyqing.aether.config;
 
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * 存储配置（BackEnd-Plan §8）
@@ -21,6 +25,17 @@ public class StorageProperties {
 
     /** 签名 URL 有效期（秒），默认 600（10 分钟，BackEnd-Plan §4.4） */
     private long signExpireSeconds = 600;
+
+    /**
+     * fail-fast 校验：签名密钥未配置或过短时启动失败（与 JwtService 同策略，
+     * 防止生产误配置导致签名访问 500 而非明确报错）
+     */
+    @PostConstruct
+    void validate() {
+        if (signSecret == null || signSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("签名密钥未配置或长度不足 32 字节，请检查 SIGN_SECRET 环境变量");
+        }
+    }
 
     public String getLocalBaseDir() {
         return localBaseDir;
