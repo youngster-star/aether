@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import tools.jackson.core.JacksonException;
@@ -39,6 +40,10 @@ import top.heyqing.aether.util.ImageUtil;
 
 /**
  * 文件上传业务编排实现（BackEnd-Plan §8.2）
+ *
+ * <p>跨请求状态设计：会话（md5/size/分片信息/OSS objectKey/uploadId）存 CacheStore JSON
+ * （TTL 24h），OSS 每片 ETag 单独缓存 key；分片进度落 storage_chunk 表。
+ * 断点续传：init 按 md5 反查未完成会话复用 uploadId，返回已传分片索引。</p>
  */
 @Service
 public class FileUploadServiceImpl implements FileUploadService {
@@ -48,22 +53,31 @@ public class FileUploadServiceImpl implements FileUploadService {
     /** merge 幂等锁 TTL（大文件 SHA-256 校验耗时，锁需覆盖整个合并周期） */
     private static final Duration MERGE_LOCK_TTL = Duration.ofMinutes(30);
 
+    /** md5 → 进行中 uploadId 映射 key 前缀（断点续传会话复用） */
+    private static final String MD5_SESSION_KEY = "upload:md5:";
+
+    /** OSS 分片 ETag key 前缀（+uploadId:index，completeMultipartUpload 用） */
+    private static final String ETAG_KEY = "upload:etag:";
+
     private final CacheStore cacheStore;
     private final StorageRouter storageRouter;
     private final StorageProperties storageProperties;
     private final StorageFileRepository storageFileRepository;
     private final StorageChunkRepository storageChunkRepository;
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
     public FileUploadServiceImpl(CacheStore cacheStore, StorageRouter storageRouter,
                                  StorageProperties storageProperties, StorageFileRepository storageFileRepository,
-                                 StorageChunkRepository storageChunkRepository, ObjectMapper objectMapper) {
+                                 StorageChunkRepository storageChunkRepository, ObjectMapper objectMapper,
+                                 TransactionTemplate transactionTemplate) {
         this.cacheStore = cacheStore;
         this.storageRouter = storageRouter;
         this.storageProperties = storageProperties;
         this.storageFileRepository = storageFileRepository;
         this.storageChunkRepository = storageChunkRepository;
         this.objectMapper = objectMapper;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Override
@@ -81,7 +95,7 @@ public class FileUploadServiceImpl implements FileUploadService {
                     log.info("秒传命中: md5={}, fileId={}", md5, file.getId());
                     return StorageInitVO.instantUpload(file.getId());
                 })
-                .orElseGet(() -> createUploadSession(request, ext, md5, storageType));
+                .orElseGet(() -> initOrResumeSession(request, ext, md5, storageType));
     }
 
     @Override
@@ -109,6 +123,13 @@ public class FileUploadServiceImpl implements FileUploadService {
             }
             throw new BusinessException(ErrorCode.STORAGE_ERROR, "分片上传失败");
         }
+        // OSS 分片 ETag 持久化（completeMultipartUpload 在 merge 时读取）
+        if (session.storageType() == 2) {
+            String etag = ctx.getPartEtags().get(index + 1);
+            if (etag != null) {
+                cacheStore.set(ETAG_KEY + uploadId + ":" + index, etag, SecurityConst.UPLOAD_SESSION_TTL);
+            }
+        }
         // 分片进度落库（断点续传依据；重复分片覆盖更新，幂等）
         StorageChunk chunk = storageChunkRepository.findByUploadIdAndChunkIndex(uploadId, index)
                 .orElseGet(StorageChunk::new);
@@ -123,7 +144,6 @@ public class FileUploadServiceImpl implements FileUploadService {
     }
 
     @Override
-    @Transactional
     public StorageMergeVO merge(String uploadId) {
         UploadSession session = loadSession(uploadId);
         // 幂等锁：防止并发重复合并（同一会话只合并一次）
@@ -138,8 +158,16 @@ public class FileUploadServiceImpl implements FileUploadService {
             }
             StorageService storage = storageRouter.select(session.storageType());
             UploadContext ctx = buildContext(session, uploadId);
-            // OSS 需先初始化分片会话（本地实现为空操作）
-            ctx.setOssUploadId(storage.initMultipart(ctx));
+            if (session.storageType() == 2) {
+                // OSS：ETag 从缓存恢复后 CompleteMultipartUpload（分片上传阶段已持久化）
+                for (int index = 0; index < session.chunkTotal(); index++) {
+                    String etag = cacheStore.get(ETAG_KEY + uploadId + ":" + index);
+                    if (etag == null) {
+                        throw new BusinessException(ErrorCode.CHUNK_MISSING);
+                    }
+                    ctx.getPartEtags().put(index + 1, etag);
+                }
+            }
             StoredFile stored = storage.merge(ctx);
             // 合并后整体校验：SHA-256 与 init 传入值一致（BackEnd-Plan §8.2）
             String actualMd5 = DigestUtil.sha256Hex(storage.open(stored.objectKey()));
@@ -176,21 +204,121 @@ public class FileUploadServiceImpl implements FileUploadService {
             storageFile.setWidth(width);
             storageFile.setHeight(height);
             storageFile.setStatus(1);
-            storageFile = storageFileRepository.save(storageFile);
-            // 分片状态置为已合并 + 会话注销
-            storageChunkRepository.findByUploadIdOrderByChunkIndexAsc(uploadId)
-                    .forEach(c -> c.setStatus(2));
+            // 短事务仅覆盖元数据落库（文件拼接/校验等耗时操作在事务外，避免长事务占连接）
+            List<StorageChunk> chunks = storageChunkRepository.findByUploadIdOrderByChunkIndexAsc(uploadId);
+            StorageFile saved = transactionTemplate.execute(status -> {
+                StorageFile savedFile = storageFileRepository.save(storageFile);
+                chunks.forEach(c -> {
+                    c.setStatus(2);
+                    storageChunkRepository.save(c);
+                });
+                return savedFile;
+            });
+            // 事务提交后清理缓存会话（清理失败由 24h TTL 兜底自愈）
             cacheStore.delete(SecurityConst.UPLOAD_SESSION_KEY + uploadId);
-            log.info("上传合并完成: uploadId={}, fileId={}, md5={}", uploadId, storageFile.getId(), session.md5());
-            return new StorageMergeVO(storageFile.getId(), buildSignedUrl(storageFile.getId()));
+            cacheStore.delete(MD5_SESSION_KEY + session.md5());
+            for (int index = 0; index < session.chunkTotal(); index++) {
+                cacheStore.delete(ETAG_KEY + uploadId + ":" + index);
+            }
+            log.info("上传合并完成: uploadId={}, fileId={}, md5={}", uploadId, saved.getId(), session.md5());
+            return new StorageMergeVO(saved.getId(), buildSignedUrl(saved.getId()));
         } finally {
             cacheStore.delete("merge:lock:" + uploadId);
         }
     }
 
     @Override
+    public StorageFile findPublishedFile(Long fileId) {
+        return storageFileRepository.findById(fileId)
+                .filter(file -> file.getStatus() == 1)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+    }
+
+    @Override
     public InputStream openFile(StorageFile file) {
         return storageRouter.select(file.getStorageType()).open(file.getObjectKey());
+    }
+
+    /**
+     * 创建新会话或复用断点会话（BackEnd-Plan §8.2 断点续传）
+     */
+    private StorageInitVO initOrResumeSession(StorageInitRequest request, String ext, String md5, int storageType) {
+        // 断点续传：同 md5 存在未完成会话则复用（分片进度存 storage_chunk，会话存 CacheStore）
+        String existingUploadId = cacheStore.get(MD5_SESSION_KEY + md5);
+        if (existingUploadId != null) {
+            UploadSession existing = tryLoadSession(existingUploadId);
+            if (existing != null && existing.storageType() == storageType) {
+                List<Integer> uploadedChunks = storageChunkRepository.findByUploadIdOrderByChunkIndexAsc(existingUploadId).stream()
+                        .map(StorageChunk::getChunkIndex)
+                        .toList();
+                log.info("断点续传命中: uploadId={}, 已传分片={}", existingUploadId, uploadedChunks);
+                return new StorageInitVO(existingUploadId, storageProperties.chunkSizeBytes(),
+                        existing.chunkTotal(), uploadedChunks, null);
+            }
+        }
+        // 新建会话；OSS 通道在会话创建时初始化分片会话（objectKey/uploadId 随会话持久化）
+        int chunkTotal = (int) Math.ceilDiv(request.size(), storageProperties.chunkSizeBytes());
+        String uploadId = UUID.randomUUID().toString().replace("-", "");
+        UploadContext ctx = new UploadContext();
+        ctx.setUploadId(uploadId);
+        ctx.setMd5(md5);
+        ctx.setSize(request.size());
+        ctx.setOriginalName(request.originalName());
+        ctx.setExt(ext);
+        ctx.setStorageType(storageType);
+        ctx.setChunkSize(storageProperties.chunkSizeBytes());
+        ctx.setChunkTotal(chunkTotal);
+        String ossUploadId = storageRouter.select(storageType).initMultipart(ctx);
+        UploadSession session = new UploadSession(md5, request.size(), request.originalName(), ext,
+                storageType, chunkTotal, ctx.getObjectKey(), ossUploadId);
+        cacheStore.set(SecurityConst.UPLOAD_SESSION_KEY + uploadId, toJson(session), SecurityConst.UPLOAD_SESSION_TTL);
+        cacheStore.set(MD5_SESSION_KEY + md5, uploadId, SecurityConst.UPLOAD_SESSION_TTL);
+        log.info("创建上传会话: uploadId={}, 总分片={}, size={}, storageType={}", uploadId, chunkTotal, request.size(), storageType);
+        return new StorageInitVO(uploadId, storageProperties.chunkSizeBytes(), chunkTotal, List.of(), null);
+    }
+
+    /**
+     * 读取会话 JSON；不存在/过期返回 null（断点续传场景容忍）
+     */
+    private UploadSession tryLoadSession(String uploadId) {
+        String json = cacheStore.get(SecurityConst.UPLOAD_SESSION_KEY + uploadId);
+        if (json == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, UploadSession.class);
+        } catch (JacksonException e) {
+            return null;
+        }
+    }
+
+    private UploadSession loadSession(String uploadId) {
+        if (uploadId == null || uploadId.isBlank()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "上传会话 ID 不能为空");
+        }
+        UploadSession session = tryLoadSession(uploadId);
+        if (session == null) {
+            throw new BusinessException(ErrorCode.UPLOAD_SESSION_NOT_FOUND);
+        }
+        return session;
+    }
+
+    /**
+     * 由会话恢复构建分片上下文（objectKey/ossUploadId 等跨请求状态从会话 JSON 恢复）
+     */
+    private UploadContext buildContext(UploadSession session, String uploadId) {
+        UploadContext ctx = new UploadContext();
+        ctx.setUploadId(uploadId);
+        ctx.setMd5(session.md5());
+        ctx.setSize(session.size());
+        ctx.setOriginalName(session.originalName());
+        ctx.setExt(session.ext());
+        ctx.setStorageType(session.storageType());
+        ctx.setChunkSize(storageProperties.chunkSizeBytes());
+        ctx.setChunkTotal(session.chunkTotal());
+        ctx.setObjectKey(session.objectKey());
+        ctx.setOssUploadId(session.ossUploadId());
+        return ctx;
     }
 
     /**
@@ -203,45 +331,6 @@ public class FileUploadServiceImpl implements FileUploadService {
                 + "?expires=" + expires + "&sign=" + sign;
     }
 
-    /**
-     * 创建上传会话（CacheStore TTL 24h）并返回断点续传信息
-     */
-    private StorageInitVO createUploadSession(StorageInitRequest request, String ext, String md5, int storageType) {
-        int chunkTotal = (int) Math.ceilDiv(request.size(), storageProperties.chunkSizeBytes());
-        String uploadId = UUID.randomUUID().toString().replace("-", "");
-        UploadSession session = new UploadSession(md5, request.size(), request.originalName(), ext, storageType, chunkTotal);
-        cacheStore.set(SecurityConst.UPLOAD_SESSION_KEY + uploadId, toJson(session), SecurityConst.UPLOAD_SESSION_TTL);
-        List<Integer> uploadedChunks = storageChunkRepository.findByUploadIdOrderByChunkIndexAsc(uploadId).stream()
-                .map(StorageChunk::getChunkIndex)
-                .toList();
-        log.info("创建上传会话: uploadId={}, 总分片={}, size={}", uploadId, chunkTotal, request.size());
-        return new StorageInitVO(uploadId, storageProperties.chunkSizeBytes(), chunkTotal, uploadedChunks, null);
-    }
-
-    private UploadSession loadSession(String uploadId) {
-        if (uploadId == null || uploadId.isBlank()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "上传会话 ID 不能为空");
-        }
-        String json = cacheStore.get(SecurityConst.UPLOAD_SESSION_KEY + uploadId);
-        if (json == null) {
-            throw new BusinessException(ErrorCode.UPLOAD_SESSION_NOT_FOUND);
-        }
-        return fromJson(json);
-    }
-
-    private UploadContext buildContext(UploadSession session, String uploadId) {
-        UploadContext ctx = new UploadContext();
-        ctx.setUploadId(uploadId);
-        ctx.setMd5(session.md5());
-        ctx.setSize(session.size());
-        ctx.setOriginalName(session.originalName());
-        ctx.setExt(session.ext());
-        ctx.setStorageType(session.storageType());
-        ctx.setChunkSize(storageProperties.chunkSizeBytes());
-        ctx.setChunkTotal(session.chunkTotal());
-        return ctx;
-    }
-
     private String toJson(UploadSession session) {
         try {
             return objectMapper.writeValueAsString(session);
@@ -250,18 +339,10 @@ public class FileUploadServiceImpl implements FileUploadService {
         }
     }
 
-    private UploadSession fromJson(String json) {
-        try {
-            return objectMapper.readValue(json, UploadSession.class);
-        } catch (JacksonException e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "上传会话反序列化失败");
-        }
-    }
-
     /**
-     * 上传会话（CacheStore JSON 负载）
+     * 上传会话（CacheStore JSON 负载；objectKey/ossUploadId 为 OSS 通道跨请求状态，本地通道为 null）
      */
-    private record UploadSession(String md5, long size, String originalName,
-                                 String ext, int storageType, int chunkTotal) {
+    private record UploadSession(String md5, long size, String originalName, String ext,
+                                 int storageType, int chunkTotal, String objectKey, String ossUploadId) {
     }
 }

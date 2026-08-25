@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.aliyun.oss.OSS;
-import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.CompleteMultipartUploadRequest;
 import com.aliyun.oss.model.InitiateMultipartUploadRequest;
 import com.aliyun.oss.model.InitiateMultipartUploadResult;
@@ -31,8 +30,12 @@ public class OssStorageServiceImpl implements StorageService {
     private final OSS client;
     private final String bucket;
 
-    public OssStorageServiceImpl(String endpoint, String accessKeyId, String accessKeySecret, String bucket) {
-        this.client = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+    /**
+     * @param client OSS 客户端（由 StorageServiceConfiguration 按环境变量构建；单测可注入 mock）
+     * @param bucket 私有 Bucket 名
+     */
+    public OssStorageServiceImpl(OSS client, String bucket) {
+        this.client = client;
         this.bucket = bucket;
     }
 

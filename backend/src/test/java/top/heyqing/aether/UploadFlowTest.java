@@ -51,7 +51,7 @@ class UploadFlowTest {
     @DisplayName("分片上传-合并-秒传全流程：init 返回断点信息，merge 校验落库，重复 init 秒传命中")
     void fullUploadFlow() {
         // 构造 20MB 内容（PNG 魔数头 + 随机数据，通过魔数校验）并计算 SHA-256
-        byte[] content = pngLikeContent(CONTENT_SIZE);
+        byte[] content = pngLikeContent(CONTENT_SIZE, 42);
         String md5 = DigestUtil.sha256Hex(new ByteArrayInputStream(content));
 
         // 1. init：返回上传会话与断点信息
@@ -93,9 +93,40 @@ class UploadFlowTest {
     }
 
     @Test
+    @DisplayName("断点续传：同 md5 重新 init 复用会话并返回已传分片索引")
+    void resumeUploadReturnsExistingSessionAndUploadedChunks() {
+        byte[] content = pngLikeContent(CONTENT_SIZE, 43);
+        String md5 = DigestUtil.sha256Hex(new ByteArrayInputStream(content));
+        StorageInitVO init = fileUploadService.init(
+                new StorageInitRequest(md5, (long) content.length, "图片.png", 1));
+        // 先传第 0 片，模拟中断
+        MultipartFile chunk0 = new MockMultipartFile("file", "chunk-0", "application/octet-stream",
+                java.util.Arrays.copyOfRange(content, 0, 8 * 1024 * 1024));
+        fileUploadService.chunk(init.uploadId(), 0, chunk0);
+
+        // 再次 init：应复用同一会话并返回已传分片 [0]
+        StorageInitVO resume = fileUploadService.init(
+                new StorageInitRequest(md5, (long) content.length, "改名了.png", 1));
+        assertEquals(init.uploadId(), resume.uploadId(), "断点续传应复用同一上传会话");
+        assertEquals(java.util.List.of(0), resume.uploadedChunks(), "应返回已传分片索引");
+
+        // 补传剩余分片并成功合并（全流程闭环）
+        int chunkSize = 8 * 1024 * 1024;
+        for (int i = 1; i < resume.chunkTotal(); i++) {
+            int from = i * chunkSize;
+            int to = Math.min(from + chunkSize, content.length);
+            MultipartFile file = new MockMultipartFile("file", "chunk-" + i, "application/octet-stream",
+                    java.util.Arrays.copyOfRange(content, from, to));
+            fileUploadService.chunk(resume.uploadId(), i, file);
+        }
+        StorageMergeVO merge = fileUploadService.merge(resume.uploadId());
+        assertEquals(md5, storageFileRepository.findById(merge.fileId()).orElseThrow().getFileMd5());
+    }
+
+    @Test
     @DisplayName("分片缺失时合并被拒（30501）")
     void mergeRejectedWhenChunksMissing() {
-        byte[] content = randomBytes(CONTENT_SIZE);
+        byte[] content = randomBytes(CONTENT_SIZE, 44);
         String md5 = DigestUtil.sha256Hex(new ByteArrayInputStream(content));
         StorageInitVO init = fileUploadService.init(
                 new StorageInitRequest(md5, (long) content.length, "视频.mp4", 1));
@@ -111,7 +142,7 @@ class UploadFlowTest {
     @Test
     @DisplayName("整体 SHA-256 与 init 不一致时合并被拒并清理物理文件（30503）")
     void mergeRejectedWhenMd5Mismatch() {
-        byte[] content = randomBytes(CONTENT_SIZE);
+        byte[] content = randomBytes(CONTENT_SIZE, 45);
         // 伪造 md5：与真实内容不符
         String fakeMd5 = "a".repeat(64);
         StorageInitVO init = fileUploadService.init(
@@ -133,7 +164,7 @@ class UploadFlowTest {
     @Test
     @DisplayName("非法扩展名与超限大小被拒（10005/10006）")
     void typeAndSizeRejected() {
-        byte[] content = randomBytes(1024);
+        byte[] content = randomBytes(1024, 46);
         String md5 = DigestUtil.sha256Hex(new ByteArrayInputStream(content));
         // 白名单外扩展名
         BusinessException e1 = assertThrows(BusinessException.class, () -> fileUploadService.init(
@@ -145,20 +176,21 @@ class UploadFlowTest {
         assertEquals(ErrorCode.FILE_SIZE_EXCEEDED.getCode(), e2.getErrorCode().getCode());
     }
 
-    private static byte[] randomBytes(int size) {
+    private static byte[] randomBytes(int size, long seed) {
         byte[] bytes = new byte[size];
-        new Random(42).nextBytes(bytes);
+        new Random(seed).nextBytes(bytes);
         return bytes;
     }
 
     /**
      * 生成带 PNG 魔数头的内容（89 50 4E 47 0D 0A 1A 0A），其余为随机数据，
      * 用于通过魔数校验；ImageIO 无法解析随机尾部，宽高探测返回 null 属预期。
+     * 各测试使用不同 seed，避免同 md5 触发秒传/断点续传跨测试串会话。
      */
-    private static byte[] pngLikeContent(int size) {
+    private static byte[] pngLikeContent(int size, long seed) {
         byte[] bytes = new byte[size];
         // 先随机填充，再覆写头部为 PNG 魔数（保证魔数校验通过）
-        new Random(42).nextBytes(bytes);
+        new Random(seed).nextBytes(bytes);
         bytes[0] = (byte) 0x89;
         bytes[1] = 0x50;
         bytes[2] = 0x4E;

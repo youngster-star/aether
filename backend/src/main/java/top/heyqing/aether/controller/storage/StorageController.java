@@ -25,7 +25,6 @@ import top.heyqing.aether.model.dto.StorageInitRequest;
 import top.heyqing.aether.model.entity.StorageFile;
 import top.heyqing.aether.model.vo.StorageInitVO;
 import top.heyqing.aether.model.vo.StorageMergeVO;
-import top.heyqing.aether.repository.StorageFileRepository;
 import top.heyqing.aether.service.storage.FileUploadService;
 import top.heyqing.aether.storage.FileTypeValidator;
 import top.heyqing.aether.storage.StorageResource;
@@ -43,13 +42,10 @@ import top.heyqing.aether.util.DigestUtil;
 public class StorageController {
 
     private final FileUploadService fileUploadService;
-    private final StorageFileRepository storageFileRepository;
     private final StorageProperties storageProperties;
 
-    public StorageController(FileUploadService fileUploadService, StorageFileRepository storageFileRepository,
-                             StorageProperties storageProperties) {
+    public StorageController(FileUploadService fileUploadService, StorageProperties storageProperties) {
         this.fileUploadService = fileUploadService;
-        this.storageFileRepository = storageFileRepository;
         this.storageProperties = storageProperties;
     }
 
@@ -95,9 +91,7 @@ public class StorageController {
         if (!DigestUtil.constantTimeEquals(expected, sign) || expires * 1000 < System.currentTimeMillis()) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "签名无效或已过期");
         }
-        StorageFile file = storageFileRepository.findById(fileId)
-                .filter(f -> f.getStatus() == 1)
-                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND));
+        StorageFile file = fileUploadService.findPublishedFile(fileId);
         InputStream in = fileUploadService.openFile(file);
         // StorageResource 提供 contentLength：ResourceHttpMessageConverter 据此支持 Range（206 分段响应）
         return ResponseEntity.ok()

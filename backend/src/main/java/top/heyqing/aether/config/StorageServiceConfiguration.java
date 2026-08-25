@@ -5,6 +5,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSClientBuilder;
+
 import top.heyqing.aether.storage.LocalStorageServiceImpl;
 import top.heyqing.aether.storage.OssStorageServiceImpl;
 import top.heyqing.aether.storage.StorageService;
@@ -37,6 +40,7 @@ public class StorageServiceConfiguration {
             @Value("${OSS_SECRET:}") String accessKeySecret,
             @Value("${OSS_BUCKET:}") String bucket) {
         OssStorageServiceImpl.checkAvailable(endpoint, accessKeyId, accessKeySecret, bucket);
-        return new OssStorageServiceImpl(endpoint, accessKeyId, accessKeySecret, bucket);
+        OSS client = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+        return new OssStorageServiceImpl(client, bucket);
     }
 }

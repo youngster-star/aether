@@ -40,6 +40,11 @@ public interface FileUploadService {
     StorageMergeVO merge(String uploadId);
 
     /**
+     * 查询已发布文件元数据（签名媒体访问用；不存在或已删除返回 10002）
+     */
+    top.heyqing.aether.model.entity.StorageFile findPublishedFile(Long fileId);
+
+    /**
      * 打开文件读取流（签名媒体访问用，按 storage_file.storageType 路由）
      */
     InputStream openFile(top.heyqing.aether.model.entity.StorageFile file);

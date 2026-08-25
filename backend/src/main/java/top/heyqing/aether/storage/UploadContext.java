@@ -4,7 +4,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 分片上传上下文（贯穿 init → chunk → merge，BackEnd-Plan §8.1/§8.2）
+ * 分片上传上下文（BackEnd-Plan §8.1/§8.2）
+ *
+ * <p>每次请求由 FileUploadServiceImpl 从会话 JSON（CacheStore）恢复构建：
+ * objectKey/ossUploadId 等跨请求状态在会话创建（initMultipart）时产生并持久化，
+ * 本对象仅作单次请求内的传递载体；partEtags 在单请求内收集（OSS 分片上传后
+ * 立即由上层持久化到 CacheStore，merge 时恢复填充）。</p>
  */
 public class UploadContext {
 
