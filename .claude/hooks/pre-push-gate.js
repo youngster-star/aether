@@ -58,12 +58,13 @@ try {
     process.exit(0);
   }
 
-  // 2. 纯文档改动（md/txt）放行：@{u}..HEAD 差异，首次推送回退 HEAD 提交文件
+  // 2. 纯文档改动（md/txt/gitignore）放行：@{u}..HEAD 差异
+  //    首次推送（无 upstream）回退为 HEAD 可达历史全部文件（git log 全量，避免 diff-tree 只看末次提交）
   let files = run('git diff --name-only @{u}..HEAD');
-  if (files === null) files = run('git diff-tree --no-commit-id --name-only -r HEAD');
+  if (files === null) files = run('git log --format= --name-only HEAD');
   if (files !== null) {
     const list = files.split('\n').filter(Boolean);
-    const docsOnly = list.length > 0 && list.every((f) => /\.(md|txt)$/.test(f));
+    const docsOnly = list.length > 0 && list.every((f) => /\.(md|txt|gitignore)$/.test(f));
     if (docsOnly) {
       reply('allow');
       process.exit(0);

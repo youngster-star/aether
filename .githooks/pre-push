@@ -3,7 +3,7 @@
 #
 # 拦截场景：在终端手动敲 git push 时（Claude Code 内由 .claude/hooks/pre-push-gate.js 拦截）
 # 逻辑与 Claude 侧 hook 一致：
-#   1. 纯文档改动（md/txt）→ 放行
+#   1. 纯文档改动（md/txt/gitignore）→ 放行
 #   2. 推送含代码变更但无 Stage.md → 阻止（文档同步门禁：进度必须随代码入库）
 #   3. .claude/.test-pass.json 有效（HEAD 匹配 + 24h 内）→ 放行
 #   4. 否则阻止（git push --no-verify 由 git 自身处理跳过本 hook）
@@ -30,8 +30,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # 删除分支（local_sha 全 0）：无新增代码，跳过
   [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
   if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-    # 远程分支不存在（首次推送）：取该提交的文件
-    FILES=$(git diff-tree --no-commit-id --name-only -r "$local_sha" 2>/dev/null || echo "")
+    # 远程分支不存在（首次推送）：取该提交可达历史全部文件
+    # （git log 全量，避免 diff-tree 只看末次提交导致多提交首次推送绕过门禁）
+    FILES=$(git log --format= --name-only "$local_sha" 2>/dev/null || echo "")
   else
     FILES=$(git diff --name-only "$remote_sha".."$local_sha" 2>/dev/null || echo "")
   fi
@@ -46,7 +47,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       STAGE_UPDATED=1
     fi
     case "$f" in
-      *.md | *.txt) ;;
+      *.md | *.txt | *.gitignore) ;;
       *) DOCS_ONLY=0 ;;
     esac
   done <<< "$FILES"
