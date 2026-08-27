@@ -14,6 +14,7 @@
 | Redis | 8.x | 限流、验证码、Refresh token 白名单、分片进度。SSPL 许可自托管个人使用无碍 |
 | ip2region | 2.7.0 + xdb 数据文件 | 离线 IP 定位，IPv4/IPv6、微秒级查询；`BufferCache` 全量内存（xdb 约 11MB）。数据文件采用 2025-09 版 v2 格式 xdb（仓库现行 master 已切 v4/v6 双文件新格式，其 Java 3.x 库尚未发布 Maven 中心，故采用中心版 2.7.0 + 历史 v2 数据文件；数据更新策略见附录 B） |
 | jsoup | 1.19.x | 富文本 XSS sanitize 白名单过滤（§4.3，文章/公告/书籍内容入库前清洗） |
+| commons-imaging | 1.0-alpha3 | 图片 EXIF 抹除（§4.5）：JPEG `ExifRewriter.removeExif` 无损移除（不重编码像素），PNG 剥离 eXIf 辅助块（手写 chunk 过滤），GIF/WebP 无标准定位元数据不处理 |
 | LangChain4j | 1.19.0 | 统一 Ollama（本地）+ DeepSeek（OpenAI 兼容协议）双 provider |
 | 验证码 | Hutool Captcha 5.8.x | 图形验证码（纯 AWT 实现）。原方案 easy-captcha 依赖 javax.servlet-api，与 Boot 4（Jakarta EE 11）冲突，按预案切换 Hutool |
 | JWT | jjwt 0.12.x | Access/Refresh 双 token（HMAC-SHA256），见 §4.2 |
@@ -172,7 +173,7 @@ GET /aether/api/v1/storage/file/{fileId}?expires=1785000000&sign=abc123...
 ### 4.5 上传安全
 
 - 类型白名单：扩展名 + 文件魔数双重校验（图片 jpg/png/gif/webp、视频 mp4/webm、音频 mp3/flac/wav/aac/m4a、文本 txt/md）
-- 大小限制：单文件上限 2GB（分片后每片 8MB，不影响）；图片上传前 EXIF 抹除定位信息（**实现排期：阶段 3 图集上传前完成，阶段 1 通用上传链路不含此处理**）
+- 大小限制：单文件上限 2GB（分片后每片 8MB，不影响）；图片上传前 EXIF 抹除定位信息（**2026-08-27 阶段 3 已实现**：merge 合并校验通过后、落库前执行——JPEG 走 commons-imaging `ExifRewriter.removeExif` 无损移除（像素不重编码，仅剥离 APP1 等元数据段）；PNG 手写 chunk 过滤剥离 eXIf 块（保留 ICC 等色彩块）；GIF/WebP 无标准定位元数据规范，跳过）
 - 存储名一律 UUID（防路径穿越），用户原始文件名仅存 `original_name` 字段
 - 客户端 IP 以 nginx `X-Real-IP`（覆盖式设置，§11.3）为准，不信任客户端可控的 X-Forwarded-For
 
@@ -499,6 +500,7 @@ CREATE TABLE `album_image` (
   `intro`       VARCHAR(500) NULL                    COMMENT '图片介绍（可选）',
   `sort`        INT          NOT NULL DEFAULT 0      COMMENT '排序号',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_album` (`album_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='图集图片表';
@@ -525,6 +527,7 @@ CREATE TABLE `video_chapter` (
   `time_offset` INT          NOT NULL                COMMENT '时间偏移（秒）',
   `sort`        INT          NOT NULL DEFAULT 0      COMMENT '排序号',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_video` (`video_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='视频关键时间节点表';
@@ -962,12 +965,13 @@ public interface StorageService {
 → 全部完成 → POST /storage/merge
    ├─ 本地：FileChannel.transferTo 顺序零拷贝拼接（保持原始字节序）
    └─ OSS：CompleteMultipartUpload（ETag 列表校验）
-→ 后端校验整体 SHA-256 与 init 一致 → 写 storage_file → 探测元数据（图片宽高/音视频时长）
+→ 后端校验整体 SHA-256 与 init 一致 → 图片执行 EXIF 抹除（§4.5）→ 写 storage_file → 探测元数据（图片宽高/音视频时长）
 → 返回 {fileId, 签名访问 URL}
 ```
 
 - 断点续传：init 返回已传分片索引，前端跳过已传分片
 - 上传会话 24h 过期（Redis TTL + 临时分片清理 job）
+- **音视频时长探测**（2026-08-27 阶段 3 落地，MediaProbeService）：首选外部 `ffprobe`（路径 `aether.media.ffprobe-path` 配置，默认 PATH 中的 `ffprobe`，生产 backend 容器内置）；ffprobe 不可用或失败时回退内置 MP4/M4A `mvhd` 原子解析（纯 Java 解析 timescale/duration，零依赖）；webm 无回退（记 0，管理端可手工补录）；探测失败均不阻断上传（duration=0 + warn 日志）
 - 存储选择：init 时前端传 `storageType`（1 本地/2 OSS），管理端上传控件明确展示两套选项（UI-Plan）
 
 ### 8.3 删除/修改一致性（需求明确要求）
