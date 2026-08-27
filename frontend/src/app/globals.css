@@ -1,26 +1,158 @@
 @import "tailwindcss";
 
+/* ===== Aether 设计系统 · 方案 D 羊皮卷（UI-Plan §2.2，tokens 已定稿） ===== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* 字体（UI-Plan §2.3 全衬线；系统字体栈直用，next/font 优化见 §12.3 遗留问题 2） */
+  --font-display: "Noto Serif SC", "Source Serif 4", Georgia, "Songti SC", "STSong", "SimSun", serif;
+  --font-body: "Noto Serif SC", "Source Serif 4", Georgia, "Songti SC", "STSong", "SimSun", serif;
+  --font-jetbrains: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  /* 中性 */
+  --background: #F3EAD8;   /* 羊皮纸（页面底） */
+  --foreground: #2B2118;   /* 墨褐（文字） */
+  --card: #FBF5E8;         /* 书页卡底 */
+  --muted: #7A6A55;        /* 褐灰（次级文字） */
+  --border: #D9C9A8;       /* 淡褐（描边） */
+  /* 主色与强调 */
+  --primary: #2B2118;      /* 墨褐（按钮/链接主色，hover 反色） */
+  --accent: #8C5B2D;       /* 赭石（强调/悬停反色/热门排名数字） */
+  --accent-2: #4F6D5A;     /* 铜绿（副强调：公告 tag/认证/装饰线） */
+  --highlight: #E8C98A;    /* 书签金（::selection 高亮/荧光标注） */
+  /* 功能色 */
+  --success: #4A7A5A;
+  --danger: #B0442E;
+  /* 圆角（克制：3 小元素 / 6 图片 / 8 卡片 / 12 大分区 / 999 pill） */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+  /* 阴影（暖褐调） */
+  --shadow: 0 2px 14px rgba(43, 33, 24, .10);
 }
 
+.dark {
+  /* 深夜书房：烛光褐金 */
+  --background: #1E1812;
+  --foreground: #E8DCC3;
+  --card: #262019;
+  --muted: #A08D72;
+  --border: #3A2F22;
+  --primary: #E8DCC3;
+  --accent: #C68B4E;
+  --accent-2: #6E8F79;
+  --highlight: #B99A5B;
+  --success: #6E8F79;
+  --danger: #D9765C;
+  --shadow: 0 2px 14px rgba(0, 0, 0, .5);
+}
+
+/* Tailwind 4：token 映射为工具类（bg-background / text-foreground / border-border / bg-accent …） */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-highlight: var(--highlight);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-pill: var(--radius-pill);
+  --shadow-aether: var(--shadow);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-jetbrains);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* 纸张纹理：CSS 噪点近似羊皮纸质感（UI-Plan §2.2，pointer-events: none） */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.47 0 0 0 0 0.35 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .5; /* dark 下降低，避免深底噪点脏 */
+}
+.dark body::before {
+  opacity: .2;
+}
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), "Noto Serif SC", "Songti SC", "STSong", "SimSun", Georgia, "Times New Roman", serif;
+  line-height: 1.9;
+}
+
+/* 全站选择效果（UI-Plan §2.6，article-03 参考） */
+::selection {
+  background: var(--accent);
+  color: var(--background);
+}
+
+/* 卡片悬停反色（UI-Plan §2.6 核心交互） */
+.hover-card {
+  background: var(--card);
+  color: var(--foreground);
+  transition: background-color 300ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hover-card:hover {
+  background: var(--accent);
+  color: var(--background);
+}
+.hover-card:hover .hover-card-dim {
+  color: var(--background);
+  opacity: .75;
+}
+
+/* 区块标题双线饰线（UI-Plan §2.4） */
+.section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display), "Noto Serif SC", serif;
+  font-weight: 900;
+}
+.section-title::before,
+.section-title::after {
+  content: "";
+  display: block;
+  height: 1px;
+  background: var(--border);
+  flex: 0 0 32px;
+}
+.section-title::after {
+  border-bottom: 2px solid var(--accent);
+  flex: 0 0 48px;
+  height: 0;
+}
+
+/* 竖排文字（RELATED ARTICLES 侧边栏按钮，UI-Plan §8.2） */
+.vertical-text {
+  writing-mode: vertical-rl;
+  letter-spacing: .35em;
+}
+
+/* 全站尊重 prefers-reduced-motion（UI-Plan §2.5） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,0 +1,57 @@
+{
+  "common": {
+    "siteName": "AETHER",
+    "siteSubtitle": "以太 · 个人网站",
+    "loading": "加载中…",
+    "loadError": "加载失败，请稍后再试",
+    "empty": "暂无内容",
+    "backHome": "返回首页",
+    "read": "阅读",
+    "viewCount": "{count} 次阅读",
+    "close": "关闭"
+  },
+  "nav": {
+    "articles": "文章",
+    "albums": "图集",
+    "videos": "视频",
+    "music": "音乐",
+    "books": "书籍",
+    "announcements": "公告",
+    "home": "首页",
+    "categories": "分类",
+    "subscribe": "订阅",
+    "admin": "管理端",
+    "menu": "菜单"
+  },
+  "home": {
+    "heroSlogans": [
+      "以太，古典的第五元素",
+      "承载思想与时光的介质",
+      "羊皮卷上的星界笔记"
+    ],
+    "heroInfo": "个人博客 · 多媒体内容 · 日常记录。星界与纸张之间的一盏灯。",
+    "hotArticles": "热门文章",
+    "latestArticles": "最新文章",
+    "viewAll": "查看全部"
+  },
+  "articles": {
+    "listTitle": "文章",
+    "searchPlaceholder": "搜索标题、简介或内容…",
+    "search": "搜索",
+    "latest": "最新",
+    "hot": "热门",
+    "all": "全部",
+    "filterByCategory": "按分类筛选",
+    "filterByTag": "按标签筛选",
+    "breadcrumbHome": "首页",
+    "breadcrumbArticles": "文章",
+    "related": "其他文章",
+    "relatedTitle": "其他文章",
+    "articleStyleDefault": "默认样式",
+    "notFound": "文章不存在或未发布"
+  },
+  "footer": {
+    "copyright": "© {year} Aether · 保留所有权利",
+    "slogan": "于羊皮卷上，写下星界之事"
+  }
+}

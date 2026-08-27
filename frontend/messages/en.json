@@ -1,0 +1,57 @@
+{
+  "common": {
+    "siteName": "AETHER",
+    "siteSubtitle": "Aether · Personal Site",
+    "loading": "Loading…",
+    "loadError": "Failed to load, please try again",
+    "empty": "Nothing here yet",
+    "backHome": "Back to home",
+    "read": "Read",
+    "viewCount": "{count} views",
+    "close": "Close"
+  },
+  "nav": {
+    "articles": "Articles",
+    "albums": "Albums",
+    "videos": "Videos",
+    "music": "Music",
+    "books": "Books",
+    "announcements": "News",
+    "home": "Home",
+    "categories": "Categories",
+    "subscribe": "Subscribe",
+    "admin": "Admin",
+    "menu": "Menu"
+  },
+  "home": {
+    "heroSlogans": [
+      "Aether, the classical fifth element",
+      "A medium carrying thought and time",
+      "Astral notes on parchment"
+    ],
+    "heroInfo": "Personal blog · multimedia · daily records. A lamp between the stars and paper.",
+    "hotArticles": "Hot Articles",
+    "latestArticles": "Latest Articles",
+    "viewAll": "View all"
+  },
+  "articles": {
+    "listTitle": "Articles",
+    "searchPlaceholder": "Search title, summary or content…",
+    "search": "Search",
+    "latest": "Latest",
+    "hot": "Hot",
+    "all": "All",
+    "filterByCategory": "Filter by category",
+    "filterByTag": "Filter by tag",
+    "breadcrumbHome": "Home",
+    "breadcrumbArticles": "Articles",
+    "related": "Related Articles",
+    "relatedTitle": "Related Articles",
+    "articleStyleDefault": "Default style",
+    "notFound": "Article not found or unpublished"
+  },
+  "footer": {
+    "copyright": "© {year} Aether · All rights reserved",
+    "slogan": "Astral stories, written on parchment"
+  }
+}
