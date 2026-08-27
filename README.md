@@ -73,6 +73,7 @@ cd agent && uvicorn main:app --port 8000
 ## 测试门禁（开发必读）
 
 - **git push 前必须完成 `/test` 全流程并通过**：在 Claude Code 中运行 `/test`（默认 6 维度：后端/前端/安全/注释/功能/效率；可指定如 `/test security`），全部通过后自动生成测试通过标记（24 小时有效），push 才会放行
+- **push 含代码变更时必须先更新 Stage.md**（§1.4 提交记录表 + 当前阶段进度 + 遗留问题）：门禁 hook 强制校验推送范围内含 Stage.md 变更，否则阻止 push
 - 双层拦截：Claude Code hook（拦截 Claude 执行的 push）+ git 原生 pre-push（拦截终端手动 push，需 `bash scripts/setup-hooks.sh` 初始化一次）
 - 纯文档改动（.md/.txt）自动放行；紧急情况 `git push --no-verify` 跳过（需说明）
 - 提交署名仅 dkb（不加 Claude Co-Authored-By），Conventional Commits 规范
@@ -119,5 +120,6 @@ aether/
 - [UI-Plan.md](UI-Plan.md)：前端 UI 开发文档（技术选型/设计系统/逐页面设计/交互方案）
 - [BackEnd-Plan.md](BackEnd-Plan.md)：后端开发文档（接口/表结构/安全/AI/存储/部署）
 - [Stage.md](Stage.md)：开发规范与阶段划分
+- [ProjectContent.md](ProjectContent.md)：项目目录结构说明
 - [CLAUDE.md](CLAUDE.md)：Claude Code 开发规范（测试门禁/提交规范）
 - [UI.md](UI.md) / [BackEnd.md](BackEnd.md)：原始需求文档（开发依据，保留不动）

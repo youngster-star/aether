@@ -26,16 +26,25 @@
 | 代码审查 | 自查 → PR → 审查（含 AI 辅助 review）→ 前后端联调通过才合并；**改动 API 或表结构必须同步更新对应 Plan 文档**（BackEnd-Plan §5/§6、UI-Plan） |
 | API 版本策略 | `/api/v1` 前缀；破坏性变更升 v2 并与 v1 并存一个版本周期后下线 v1 |
 | 环境划分 | dev（本地 docker-compose）/ test（测试服务器）/ prod（www.heyqing.top/aether）；**所有配置环境变量外置**（BackEnd-Plan §11.2）；seed 测试数据仅 dev/test 执行 |
-| 文档同步 | 任何与 Plan 文档不一致的实现，先改文档再改代码；阶段完成后更新本文件"当前阶段"状态 |
+| 文档同步 | 任何与 Plan 文档不一致的实现，先改文档再改代码；阶段完成后更新本文件"当前阶段"状态；**push 含代码变更时必须伴随 Stage.md 更新**（提交记录表/进度/遗留，门禁 hook 强制校验） |
 | 测试门禁 | git push 前必须 /test 全维度通过（门禁体系见 .claude/：code-tester agent + 6 维度 skill + 门禁 hook，**与业务 agent/ 无关**；纯文档改动放行，`--no-verify` 仅紧急使用）；commit 署名仅 dkb，不加 Claude Co-Authored-By |
 
 ### 1.3 当前阶段
 
-- 项目状态：**阶段 2 进行中**（2026-08-25 代码完成：游客 IP 分析 + 日统计 job + 文章模块前后端全链路联调通过；待站长浏览器视觉验收后打勾）；阶段 1 已完成（2026-08-25）
+- 项目状态：**阶段 2 进行中**（2026-08-27 代码完成并已推送 dkb/dev `62fffbe`，测试门禁 6 维度 PASS：后端 25/25 + 前端 lint/build + 安全/注释/功能/效率审查；待站长浏览器视觉验收后打勾）；阶段 1 已完成（2026-08-25）
+- 阶段 2 遗留问题：① 站长浏览器视觉验收（吸顶栏 5-8%、悬停反色与参考风格一致性）；② 文章搜索 LIKE 通配符 `%`/`_` 未转义（低危，仅影响搜索语义，无注入风险，见 BackEnd-Plan 附录 B）；③ 日统计 job 事务缺失 bug 已修（62fffbe，测试假阳性掩盖，回归通过）
 - 前端动效说明（2026-08-27）：阶段 2 前端 UI 动效为**联调用语义简化版**（magicui 依赖未引入，Hero 悬浮信息面板/光环动画、AetherRing 加载与版权区动画、热门卡片排名动效与"阅读"按钮等以 framer-motion 简化实现或暂缺），**非最终效果**；待 UI 视觉打磨阶段引入 magicui 按 UI-Plan §7 清单统一补齐（站长已确认此安排）
 - 说明：dev docker-compose 文件已就绪（deploy/docker-compose.dev.yml），Docker 环境按用户要求在项目末期统一安装；本地开发后端用 `local,dev` profile 组合连接真实 MySQL（application-local.yml，测试仍用 dev H2 内存库 + 内存 CacheStore）
 - 提前完成：阶段 2 的设计基调确认已提前执行（2026-08-24，站长选定方案 D · 羊皮卷，展示页仅本地保留（design/moodboards/，不入库），tokens 与 LOGO 定稿见 UI-Plan §2/§3）
 - 阶段 1 实现适配记录（BackEnd-Plan 已同步）：Hutool Captcha 替代 easy-captcha（javax.servlet 冲突）；CacheStore 抽象（Redis/内存双实现，dev 回退）；Boot 4.1 模块化适配（无 starter-aop 改用 spring-aop+aspectjweaver、MockMvc 测试模块 spring-boot-starter-webmvc-test、Jackson 3 tools.jackson 包名、Argon2 需显式引 bcprov-jdk18on、Hibernate 7 @Comment 已废弃故表注释以 schema-mysql.sql 为准）
+
+### 1.4 提交记录（每次 push 含代码变更必须更新本表，门禁 hook 强制校验）
+
+| 日期 | commit 范围 | 摘要 |
+| --- | --- | --- |
+| 2026-08-24 | 1158b65..6a1104d | 阶段 0 脚手架 + 测试门禁体系搭建 + 设计基调定稿（方案 D 羊皮卷） |
+| 2026-08-25 | f864c3c..b0d8b7a | 阶段 1 后端基础（统一返回/登录三级防护/JWT/存储双实现/分片秒传）+ 修复项（security/storage） |
+| 2026-08-27 | 47aa302..62fffbe | 阶段 2 代码（游客 IP 分析 + 文章模块前后端全链路）+ 文档同步 + 日统计 job 事务修复；门禁 6 维度 PASS |
 
 ## 2 开发阶段
 
@@ -146,7 +155,7 @@
 | --- | --- | --- | --- |
 | 0 | 项目脚手架 | 无 | ✅ 已完成（2026-08-24） |
 | 1 | 后端基础 | 0 | ✅ 已完成（2026-08-25） |
-| 2 | 用户+文章 | 1 | 🔄 进行中（代码完成：后端 25 测试全绿 + 前后端联调通过；待站长浏览器视觉验收：吸顶栏 5-8%、悬停反色与参考风格一致性；前端动效为简化版，见 §1.3 说明，magicui 引入延后统一优化） |
+| 2 | 用户+文章 | 1 | 🔄 进行中（2026-08-27 已推送 62fffbe，门禁 PASS；待站长浏览器视觉验收：吸顶栏 5-8%、悬停反色与参考风格一致性；前端动效为简化版，见 §1.3 说明，magicui 引入延后统一优化） |
 | 3 | 视频+图片 | 1 | ⬜ 待开始 |
 | 4 | 音乐 | 1 | ⬜ 待开始 |
 | 5 | 书籍 | 0、1 | ⬜ 待开始 |

@@ -8,6 +8,7 @@
 2. 用户触发"测试代码 / 检查代码 / 安全测试 / 代码审查 / 跑一下测试"等关键词时，主动执行测试流程（可按用户指定维度）
 3. 测试体系位于 `.claude/`（code-tester agent + 6 个维度 skill + /test 命令 + 门禁 hook），**与项目业务 `agent/`（Python 分章服务）完全无关，禁止混淆**
 4. 纯文档改动（仅 .md/.txt/.gitignore）不受门禁限制；`git push --no-verify` 可强制跳过（仅限紧急情况，需向用户说明）
+5. **push 含代码变更时必须先更新 Stage.md**（§1.4 提交记录表 + 当前阶段进度 + 遗留问题），门禁 hook 强制校验"推送范围内含 Stage.md 变更"，否则阻止 push
 
 ## 提交规范
 
@@ -28,3 +29,4 @@
 - 后端测试/本地运行用 dev profile（H2 内存库）：`mvn -Dspring.profiles.active=dev`
 - Docker 环境项目末期统一安装（当前不要求 docker）
 - Next.js 16 存在 breaking changes：写前端代码前先读 `frontend/node_modules/next/dist/docs/` 对应文档
+- 本机网络封锁 `github.com:22`：已配置 `~/.ssh/config` 走 `ssh.github.com:443`（SSH over 443），push 无需额外操作

@@ -1089,3 +1089,4 @@ location /aether/ {
 1. ~~easy-captcha 兼容性~~：已确认与 Boot 4 冲突（javax.servlet-api），按预案切换 Hutool Captcha（§1）；OSS 分片上传需真实凭据联调，留待阶段 9 部署环境验证
 2. ip2region xdb 数据文件定期更新策略（随镜像打包 + 定时拉取）
 3. DeepSeek 供应商为 DeepSeek 时的 SSRF 面（仅出站 API 调用，无回源，风险低）
+4. 文章搜索 LIKE 通配符未转义（2026-08-27 测试记录，低危）：`%`/`_` 作为搜索关键词时会被解释为 SQL LIKE 通配符（仅影响搜索语义，全参数绑定无注入风险）；后续在关键词处统一 `escape` 处理，随搜索优化一并落地
