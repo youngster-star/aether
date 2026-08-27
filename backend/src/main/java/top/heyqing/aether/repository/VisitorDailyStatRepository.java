@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import top.heyqing.aether.model.entity.VisitorDailyStat;
 
@@ -16,6 +17,12 @@ public interface VisitorDailyStatRepository extends JpaRepository<VisitorDailySt
 
     List<VisitorDailyStat> findByStatDateBetweenOrderByStatDate(LocalDate start, LocalDate end);
 
-    /** 重跑统计时清理旧数据（job 幂等） */
+    /**
+     * 重跑统计时清理旧数据（job 幂等）
+     *
+     * <p>派生 delete 为 load-then-remove，必须自带事务（调用方 aggregateDaily 无事务，
+     * 缺失时 remove 抛 TransactionRequiredException，导致每日 job 从第二天起永远失败）。</p>
+     */
+    @Transactional
     void deleteByStatDate(LocalDate statDate);
 }
