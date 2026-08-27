@@ -1,0 +1,22 @@
+# local profile：本地开发连接真实 MySQL（docker-compose.dev.yml 默认连接），数据持久化
+# 启动：mvn spring-boot:run -Dspring-boot.profiles.active=local,dev
+# 必须与 dev 组合使用：dev 提供本地默认密钥（JWT/签名）与调试端点放行，local 覆盖数据源
+# （测试仍单独使用 dev，H2 内存库不受影响）
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/aether?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: aether_dev
+  jpa:
+    hibernate:
+      # 本地开发自动建表（表注释以 db/schema-mysql.sql 为准；生产 ddl-auto=none 走 schema-mysql.sql）
+      ddl-auto: update
+    show-sql: false
+
+aether:
+  cache:
+    # 本地开发用内存缓存回退（单实例够用）；Redis 已启动时可改为 redis 并配置 spring.data.redis
+    store: memory
+  storage:
+    local-base-dir: ./data/storage

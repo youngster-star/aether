@@ -4,8 +4,8 @@ spring:
   datasource:
     url: jdbc:h2:mem:aether;MODE=MySQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    username: root
+    password: 1234
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -21,9 +21,9 @@ aether:
     store: memory
   jwt:
     # 仅 dev 默认密钥，生产必须经 JWT_SECRET 环境变量注入
-    secret: dev-only-jwt-secret-aether-2026-0123456789abcdef
+    secret: dev-only-jwt-secret-aether-2026-1009041314zanmjh
     refresh-secure: false
   storage:
     # 仅 dev 默认签名密钥，生产必须经 SIGN_SECRET 环境变量注入
-    sign-secret: dev-only-sign-secret-aether-2026-0123456789abcdef
+    sign-secret: dev-only-sign-secret-aether-2026-1009041314zanmjh
     local-base-dir: ./data/storage

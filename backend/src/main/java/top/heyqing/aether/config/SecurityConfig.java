@@ -56,7 +56,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
                                                    RestAuthEntryPoint entryPoint, RestAccessDeniedHandler deniedHandler,
                                                    Environment environment) throws Exception {
-        boolean dev = environment.acceptsProfiles(Profiles.of("dev", "test"));
+        boolean dev = environment.acceptsProfiles(Profiles.of("dev", "test", "local"));
         if (dev) {
             // H2 控制台以 iframe 展示，需允许同源 frame
             http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
