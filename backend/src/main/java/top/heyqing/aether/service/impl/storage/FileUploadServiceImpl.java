@@ -221,7 +221,7 @@ public class FileUploadServiceImpl implements FileUploadService {
                 cacheStore.delete(ETAG_KEY + uploadId + ":" + index);
             }
             log.info("上传合并完成: uploadId={}, fileId={}, md5={}", uploadId, saved.getId(), session.md5());
-            return new StorageMergeVO(saved.getId(), buildSignedUrl(saved.getId()));
+            return new StorageMergeVO(saved.getId(), signUrl(saved.getId()));
         } finally {
             cacheStore.delete("merge:lock:" + uploadId);
         }
@@ -324,7 +324,8 @@ public class FileUploadServiceImpl implements FileUploadService {
     /**
      * 构建签名访问 URL（HMAC-SHA256(fileId:expires)，默认 10 分钟有效，BackEnd-Plan §4.4）
      */
-    private String buildSignedUrl(Long fileId) {
+    @Override
+    public String signUrl(Long fileId) {
         long expires = System.currentTimeMillis() / 1000 + storageProperties.getSignExpireSeconds();
         String sign = DigestUtil.hmacSha256(fileId + ":" + expires, storageProperties.getSignSecret());
         return ApiConst.CONTEXT_PATH + ApiConst.API_V1 + "/storage/file/" + fileId

@@ -30,6 +30,9 @@ public enum ErrorCode {
     // ===== 3xxxx 业务错误 =====
     // 300xx 文章
     ARTICLE_NOT_FOUND(30001, "文章不存在"),
+    CATEGORY_NOT_FOUND(30002, "分类不存在"),
+    TAG_NOT_FOUND(30003, "标签不存在"),
+    STYLE_NOT_FOUND(30004, "样式不存在"),
     // 301xx 图集
     ALBUM_NOT_FOUND(30101, "图集不存在"),
     // 302xx 视频

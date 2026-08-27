@@ -15,11 +15,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import top.heyqing.aether.model.entity.AiConfig;
+import top.heyqing.aether.model.entity.Article;
+import top.heyqing.aether.model.entity.ArticleStyle;
+import top.heyqing.aether.model.entity.BizCategoryRel;
+import top.heyqing.aether.model.entity.BizTagRel;
 import top.heyqing.aether.model.entity.Category;
 import top.heyqing.aether.model.entity.SurveyOption;
 import top.heyqing.aether.model.entity.SysUser;
 import top.heyqing.aether.model.entity.Tag;
 import top.heyqing.aether.repository.AiConfigRepository;
+import top.heyqing.aether.repository.ArticleRepository;
+import top.heyqing.aether.repository.ArticleStyleRepository;
+import top.heyqing.aether.repository.BizCategoryRelRepository;
+import top.heyqing.aether.repository.BizTagRelRepository;
 import top.heyqing.aether.repository.CategoryRepository;
 import top.heyqing.aether.repository.SurveyOptionRepository;
 import top.heyqing.aether.repository.SysUserRepository;
@@ -32,7 +40,7 @@ import top.heyqing.aether.repository.TagRepository;
  * 管理员账户、分类/标签字典、问卷选项、AI 默认配置。全部幂等（存在即跳过）。</p>
  */
 @Component
-@Profile({"dev", "test"})
+@Profile({"dev", "test", "local"})
 public class DataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
@@ -48,18 +56,29 @@ public class DataSeeder implements ApplicationRunner {
     private final TagRepository tagRepository;
     private final SurveyOptionRepository surveyOptionRepository;
     private final AiConfigRepository aiConfigRepository;
+    private final ArticleRepository articleRepository;
+    private final ArticleStyleRepository articleStyleRepository;
+    private final BizCategoryRelRepository bizCategoryRelRepository;
+    private final BizTagRelRepository bizTagRelRepository;
     private final PasswordEncoder passwordEncoder;
     private final Environment environment;
 
     public DataSeeder(SysUserRepository sysUserRepository, CategoryRepository categoryRepository,
                       TagRepository tagRepository, SurveyOptionRepository surveyOptionRepository,
-                      AiConfigRepository aiConfigRepository, PasswordEncoder passwordEncoder,
+                      AiConfigRepository aiConfigRepository, ArticleRepository articleRepository,
+                      ArticleStyleRepository articleStyleRepository,
+                      BizCategoryRelRepository bizCategoryRelRepository,
+                      BizTagRelRepository bizTagRelRepository, PasswordEncoder passwordEncoder,
                       Environment environment) {
         this.sysUserRepository = sysUserRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
         this.surveyOptionRepository = surveyOptionRepository;
         this.aiConfigRepository = aiConfigRepository;
+        this.articleRepository = articleRepository;
+        this.articleStyleRepository = articleStyleRepository;
+        this.bizCategoryRelRepository = bizCategoryRelRepository;
+        this.bizTagRelRepository = bizTagRelRepository;
         this.passwordEncoder = passwordEncoder;
         this.environment = environment;
     }
@@ -71,6 +90,8 @@ public class DataSeeder implements ApplicationRunner {
         seedTags();
         seedSurveyOptions();
         seedAiConfigs();
+        seedArticleStyles();
+        seedArticles();
         log.info("seed 数据初始化完成");
     }
 
@@ -204,5 +225,113 @@ public class DataSeeder implements ApplicationRunner {
             map.put(keyValues[i], keyValues[i + 1]);
         }
         return map;
+    }
+
+    /**
+     * 默认文章样式（方案 D 羊皮卷基调，与 UI-Plan §2 tokens 对应，BackEnd-Plan §6.3 结构）
+     */
+    private void seedArticleStyles() {
+        if (articleStyleRepository.count() > 0) {
+            return;
+        }
+        ArticleStyle style = new ArticleStyle();
+        style.setName("羊皮卷默认样式");
+        style.setStyleJson("""
+                {"fontFamily":"Noto Serif SC","fontSize":17,"lineHeight":1.9,"letterSpacing":0,\
+                "wordSpacing":0,"paragraphSpacing":16,"firstLineIndent":"2em","contentWidth":720,\
+                "themeColor":"#8B6F47","serif":true,"customCss":""}""");
+        style.setIsDefault(1);
+        articleStyleRepository.save(style);
+        log.info("seed: 默认文章样式已创建（羊皮卷基调）");
+    }
+
+    /**
+     * 示例文章（阶段 2 开发数据，走通主页→列表→详情→相关文章链路；上线前清理，Stage.md §1.1）
+     */
+    private void seedArticles() {
+        if (articleRepository.count() > 0) {
+            return;
+        }
+        seedArticle("Spring Boot 4 初探：新版本的变与不变",
+                "tech", new String[]{"Java", "Spring"},
+                """
+                        <p>Spring Boot 4 基于 Spring Framework 7，最大的变化是 Jackson 3 与 Jakarta EE 11。</p>\
+                        <h2>Jackson 3</h2>\
+                        <p>包名从 com.fasterxml 迁移到 tools.jackson，序列化器接口也换了名字。</p>\
+                        <h2>模块化</h2>\
+                        <p>starter 体系进一步拆分，MockMvc 测试需要单独引入 webmvc-test 模块。</p>""",
+                "Spring Boot 4 初探：新版本的变与不变\n\nSpring Boot 4 基于 Spring Framework 7。\n\n## Jackson 3\n\n包名从 com.fasterxml 迁移到 tools.jackson。",
+                5, true, 10);
+        seedArticle("离线 IP 定位：ip2region 在个人站的落地",
+                "tech", new String[]{"Java"},
+                """
+                        <p>统计游客地域不需要在线 API，一个 11MB 的 xdb 数据文件就够了。</p>\
+                        <h2>BufferCache</h2>\
+                        <p>整个文件加载进内存，查询微秒级，个人站毫无压力。</p>\
+                        <h2>降级规则</h2>\
+                        <p>城市未知时降级到省份，ECharts 地图按省着色。</p>""",
+                "离线 IP 定位：ip2region 在个人站的落地\n\n统计游客地域不需要在线 API。",
+                3, false, 0);
+        seedArticle("以太小站上线记",
+                "life", new String[]{"生活随想"},
+                """
+                        <p>筹备了很久的个人网站终于上线，记录一下选型与踩坑。</p>\
+                        <h2>为什么叫以太</h2>\
+                        <p>以太是古典物理学假想的介质，也是我想做的东西——承载内容本身的介质。</p>\
+                        <h2>技术栈</h2>\
+                        <p>Java 21 + Spring Boot 4 后端，Next.js 16 前端，MySQL 8.4。</p>""",
+                "以太小站上线记\n\n筹备了很久的个人网站终于上线。",
+                1, true, 5);
+        seedArticle("关于羊皮卷配色的想法",
+                "essay", new String[]{"生活随想"},
+                """
+                        <p>暖纸底色、深褐文字、以太金点缀——像一卷展开的旧羊皮纸。</p>\
+                        <p>暗色模式则是深空底上的同系金色，星界与纸张的对照。</p>""",
+                "关于羊皮卷配色的想法\n\n暖纸底色、深褐文字、以太金点缀。",
+                8, false, 0);
+        log.info("seed: 示例文章 4 篇已创建（阶段 2 开发数据）");
+    }
+
+    /**
+     * 创建一篇已发布文章并绑定分类标签
+     */
+    private void seedArticle(String title, String categorySlug, String[] tagNames, String html,
+                             String markdown, int daysAgo, boolean hot, int hotOrder) {
+        Article article = new Article();
+        article.setTitle(title);
+        String plainText = html.replaceAll("<[^>]+>", "").trim();
+        article.setSummary(plainText.substring(0, Math.min(80, plainText.length())));
+        article.setContentHtml(html);
+        article.setContentMd(markdown);
+        article.setWordCount(plainText.length());
+        article.setReadingCount(hot ? 10 + hotOrder : 0);
+        article.setIsHot(hot ? 1 : 0);
+        article.setHotOrder(hotOrder);
+        article.setIsPublished(1);
+        article.setPublishTime(java.time.LocalDateTime.now().minusDays(daysAgo));
+        articleRepository.save(article);
+
+        categoryRepository.findByBizTypeOrderBySortAsc("article").stream()
+                .filter(c -> c.getSlug().equals(categorySlug))
+                .findFirst()
+                .ifPresent(c -> {
+                    BizCategoryRel rel = new BizCategoryRel();
+                    rel.setBizType("article");
+                    rel.setBizId(article.getId());
+                    rel.setCategoryId(c.getId());
+                    bizCategoryRelRepository.save(rel);
+                });
+        for (String tagName : tagNames) {
+            tagRepository.findByBizType("article").stream()
+                    .filter(t -> t.getName().equals(tagName))
+                    .findFirst()
+                    .ifPresent(t -> {
+                        BizTagRel rel = new BizTagRel();
+                        rel.setBizType("article");
+                        rel.setBizId(article.getId());
+                        rel.setTagId(t.getId());
+                        bizTagRelRepository.save(rel);
+                    });
+        }
     }
 }

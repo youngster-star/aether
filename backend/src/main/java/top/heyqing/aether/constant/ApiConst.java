@@ -25,6 +25,10 @@ public final class ApiConst {
             "/error",
             "/v1/auth/**",
             "/v1/storage/file/**",
+            // 文章公开接口（BackEnd-Plan §5.2）
+            "/v1/articles/**",
+            "/v1/categories",
+            "/v1/tags",
             // dev 环境调试工具（h2-console/swagger/actuator），由 SecurityConfig 按 profile 追加
     };
 }

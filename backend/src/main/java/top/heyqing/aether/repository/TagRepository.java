@@ -20,4 +20,9 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
      * 按业务域统计（seed 幂等判断用）
      */
     long countByBizType(String bizType);
+
+    /**
+     * 业务域内 slug 唯一性校验（管理端创建/修改防重复）
+     */
+    boolean existsByBizTypeAndSlug(String bizType, String slug);
 }

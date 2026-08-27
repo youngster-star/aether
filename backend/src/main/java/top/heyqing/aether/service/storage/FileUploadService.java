@@ -48,4 +48,14 @@ public interface FileUploadService {
      * 打开文件读取流（签名媒体访问用，按 storage_file.storageType 路由）
      */
     InputStream openFile(top.heyqing.aether.model.entity.StorageFile file);
+
+    /**
+     * 构建签名访问 URL（HMAC-SHA256(fileId:expires)，有效时长取配置 sign-expire）
+     *
+     * <p>业务 VO 输出封面等媒体地址时统一走本方法，禁止直接暴露存储路径（BackEnd-Plan §4.4）。</p>
+     *
+     * @param fileId 文件 ID
+     * @return 完整签名 URL（含 context-path，可直接被前端消费）
+     */
+    String signUrl(Long fileId);
 }
