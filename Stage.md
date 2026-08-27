@@ -48,7 +48,7 @@
 | 2026-08-25 | f864c3c..b0d8b7a | 阶段 1 后端基础（统一返回/登录三级防护/JWT/存储双实现/分片秒传）+ 修复项（security/storage） |
 | 2026-08-27 | 47aa302..62fffbe | 阶段 2 代码（游客 IP 分析 + 文章模块前后端全链路）+ 文档同步 + 日统计 job 事务修复；门禁 6 维度 PASS |
 | 2026-08-27 | 62fffbe..b2eefe5 | 测试门禁机制升级：文档同步门禁（push 含代码变更必须伴随 Stage.md，双 hook 规则 3 强制）+ 门禁文档同步（CLAUDE.md 第 5 条/README/Stage.md）+ 首次推送回退路径与 .gitignore 豁免修复 + BackEnd-Plan 附录 B LIKE 转义遗留 |
-| 2026-08-27 | b2eefe5..HEAD | 阶段 3 图集+视频：后端全链路（album/album_image/video/video_chapter 表 + 公开/管理 API）+ 签名 URL Range 206 + 图片 EXIF 抹除（commons-imaging）+ 时长探测（ffprobe + MP4 内置回退）+ storage_ref 删除一致性（归零清理/补偿 job/uk_md5 复活）+ 前端图集/视频 4 页 + ArtPlayer + 防下载预览层 + ProtectedImage 统一接入 + 主页推荐图集区块 + seed 数据与 7 项集成测试（32/32 PASS）；BackEnd-Plan §1/§4.5/§6.2/§8.2 同步 |
+| 2026-08-27 | b2eefe5..6920123 | 阶段 3 图集+视频：后端全链路（album/album_image/video/video_chapter 表 + 公开/管理 API）+ 签名 URL Range 206 + 图片 EXIF 抹除（commons-imaging）+ 时长探测（ffprobe + MP4 内置回退）+ storage_ref 删除一致性（归零清理/补偿 job/uk_md5 复活）+ 前端图集/视频 4 页 + ArtPlayer + 防下载预览层 + ProtectedImage 统一接入 + 主页推荐图集区块 + seed 数据与 7 项集成测试（32/32 PASS）；BackEnd-Plan §1/§4.5/§6.2/§8.2 同步 |
 
 ## 2 开发阶段
 
