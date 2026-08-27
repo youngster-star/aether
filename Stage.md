@@ -45,7 +45,7 @@
 | 2026-08-24 | 1158b65..6a1104d | 阶段 0 脚手架 + 测试门禁体系搭建 + 设计基调定稿（方案 D 羊皮卷） |
 | 2026-08-25 | f864c3c..b0d8b7a | 阶段 1 后端基础（统一返回/登录三级防护/JWT/存储双实现/分片秒传）+ 修复项（security/storage） |
 | 2026-08-27 | 47aa302..62fffbe | 阶段 2 代码（游客 IP 分析 + 文章模块前后端全链路）+ 文档同步 + 日统计 job 事务修复；门禁 6 维度 PASS |
-| 2026-08-27 | 62fffbe..4857cb3 | 测试门禁机制升级：文档同步门禁（push 含代码变更必须伴随 Stage.md，双 hook 规则 3 强制）+ 门禁文档同步（CLAUDE.md 第 5 条/README/Stage.md）+ 首次推送回退路径与 .gitignore 豁免修复 + BackEnd-Plan 附录 B LIKE 转义遗留 |
+| 2026-08-27 | 62fffbe..b2eefe5 | 测试门禁机制升级：文档同步门禁（push 含代码变更必须伴随 Stage.md，双 hook 规则 3 强制）+ 门禁文档同步（CLAUDE.md 第 5 条/README/Stage.md）+ 首次推送回退路径与 .gitignore 豁免修复 + BackEnd-Plan 附录 B LIKE 转义遗留 |
 
 ## 2 开发阶段
 
