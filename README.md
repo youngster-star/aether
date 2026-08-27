@@ -75,7 +75,7 @@ cd agent && uvicorn main:app --port 8000
 - **git push 前必须完成 `/test` 全流程并通过**：在 Claude Code 中运行 `/test`（默认 6 维度：后端/前端/安全/注释/功能/效率；可指定如 `/test security`），全部通过后自动生成测试通过标记（24 小时有效），push 才会放行
 - **push 含代码变更时必须先更新 Stage.md**（§1.4 提交记录表 + 当前阶段进度 + 遗留问题）：门禁 hook 强制校验推送范围内含 Stage.md 变更，否则阻止 push
 - 双层拦截：Claude Code hook（拦截 Claude 执行的 push）+ git 原生 pre-push（拦截终端手动 push，需 `bash scripts/setup-hooks.sh` 初始化一次）
-- 纯文档改动（.md/.txt）自动放行；紧急情况 `git push --no-verify` 跳过（需说明）
+- 纯文档改动（.md/.txt/.gitignore）自动放行；紧急情况 `git push --no-verify` 跳过（需说明）
 - 提交署名仅 dkb（不加 Claude Co-Authored-By），Conventional Commits 规范
 - 测试体系详见 `.claude/`（code-tester agent + 6 维度 skill + /test 命令 + 门禁 hook），**与业务 agent/（Python 分章服务）无关**
 

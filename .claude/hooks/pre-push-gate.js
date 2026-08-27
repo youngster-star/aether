@@ -4,7 +4,7 @@
  *
  * 拦截 git push 前的检查逻辑：
  *   1. 命令含 --no-verify            → 放行（逃生口）
- *   2. 本次推送仅文档改动（md/txt）   → 放行
+ *   2. 本次推送仅文档改动（md/txt/gitignore）→ 放行
  *   3. 推送含代码变更但无 Stage.md    → deny（文档同步门禁：进度必须随代码入库）
  *   4. .claude/.test-pass.json 有效   → 放行（HEAD 匹配 + 24 小时内）
  *   5. 其余情况                       → deny，提示先跑 /test
