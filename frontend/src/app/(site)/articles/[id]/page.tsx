@@ -8,6 +8,7 @@ import ArticleDetailClient from "@/components/article/ArticleDetailClient";
 import RelatedInline from "@/components/article/RelatedInline";
 import RelatedPanel from "@/components/article/RelatedPanel";
 import StickyTitleBar from "@/components/article/StickyTitleBar";
+import ProtectedImage from "@/components/media/ProtectedImage";
 
 /**
  * 文章详情页（UI-Plan §6.3 / BackEnd-Plan §5.2 GET /articles/{id}）
@@ -100,18 +101,11 @@ export default async function ArticleDetailPage({params}: {params: Promise<{id: 
           )}
         </header>
 
-        {/* 封面（可选；ProtectedImage 防下载阶段 3 图集时统一接入） */}
+        {/* 封面（可选；ProtectedImage 统一防下载：右键/拖拽拦截，签名 URL 访问） */}
         {article.coverUrl && (
-          // 签名 URL 动态生成（含 expires/sign），next/image 优化器会重写 URL 破坏签名，
-          // 故用原生 img（签名过期刷新与防下载拦截由阶段 3 ProtectedImage 统一处理）
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={article.coverUrl}
-            alt={article.title}
-            className="mx-auto mt-8 max-h-[480px] w-auto rounded-md"
-            draggable={false}
-            onContextMenu={(event) => event.preventDefault()}
-          />
+          <div className="mx-auto mt-8 max-h-[480px] w-auto overflow-hidden rounded-md">
+            <ProtectedImage src={article.coverUrl} alt={article.title} className="max-h-[480px]" />
+          </div>
         )}
 
         {/* 正文（独立样式注入 + DOMPurify） */}

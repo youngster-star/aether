@@ -50,6 +50,25 @@
     "articleStyleDefault": "Default style",
     "notFound": "Article not found or unpublished"
   },
+  "albums": {
+    "listTitle": "Albums",
+    "breadcrumbAlbums": "Albums",
+    "recommended": "Recommended Albums",
+    "notFound": "Album not found",
+    "photoCount": "{count} photos",
+    "previewSize": "Size",
+    "previewDimensions": "Dimensions",
+    "previewTip": "Click anywhere outside to close · Esc"
+  },
+  "videos": {
+    "listTitle": "Videos",
+    "breadcrumbVideos": "Videos",
+    "notFound": "Video not found",
+    "chapters": "Chapters",
+    "duration": "Duration",
+    "noChapters": "No chapters",
+    "playError": "This video is a placeholder and cannot be played yet. The real video will be available after upload."
+  },
   "footer": {
     "copyright": "© {year} Aether · All rights reserved",
     "slogan": "Astral stories, written on parchment"

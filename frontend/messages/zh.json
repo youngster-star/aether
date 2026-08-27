@@ -50,6 +50,25 @@
     "articleStyleDefault": "默认样式",
     "notFound": "文章不存在或未发布"
   },
+  "albums": {
+    "listTitle": "图集",
+    "breadcrumbAlbums": "图集",
+    "recommended": "推荐图集",
+    "notFound": "图集不存在",
+    "photoCount": "{count} 张图片",
+    "previewSize": "大小",
+    "previewDimensions": "尺寸",
+    "previewTip": "点击空白处或按 Esc 关闭"
+  },
+  "videos": {
+    "listTitle": "视频",
+    "breadcrumbVideos": "视频",
+    "notFound": "视频不存在",
+    "chapters": "章节",
+    "duration": "时长",
+    "noChapters": "暂无章节",
+    "playError": "该视频为占位数据暂不可播放，正式视频待站长上传后替换。"
+  },
   "footer": {
     "copyright": "© {year} Aether · 保留所有权利",
     "slogan": "于羊皮卷上，写下星界之事"

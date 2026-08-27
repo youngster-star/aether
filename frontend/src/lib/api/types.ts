@@ -86,3 +86,60 @@ export interface ArticleStyleConfig {
   serif?: boolean;
   customCss?: string;
 }
+
+/** 图集列表 VO（BackEnd-Plan §5.2 GET /albums） */
+export interface AlbumListVO {
+  id: number;
+  title: string;
+  coverUrl: string | null;
+  intro: string | null;
+  imageCount: number;
+}
+
+/** 图集图片 VO（图集详情内嵌） */
+export interface AlbumImageVO {
+  id: number;
+  title: string | null;
+  intro: string | null;
+  url: string;
+  width: number | null;
+  height: number | null;
+  size: number;
+}
+
+/** 图集详情 VO（BackEnd-Plan §5.2 GET /albums/{id}） */
+export interface AlbumDetailVO {
+  id: number;
+  title: string;
+  coverUrl: string | null;
+  intro: string | null;
+  createTime: string;
+  images: AlbumImageVO[];
+}
+
+/** 视频列表 VO（BackEnd-Plan §5.2 GET /videos） */
+export interface VideoListVO {
+  id: number;
+  title: string;
+  coverUrl: string | null;
+  intro: string | null;
+  duration: number;
+}
+
+/** 视频关键时间节点 VO */
+export interface VideoChapterVO {
+  id: number;
+  title: string;
+  timeOffset: number;
+}
+
+/** 视频详情 VO（BackEnd-Plan §5.2 GET /videos/{id}） */
+export interface VideoDetailVO {
+  id: number;
+  title: string;
+  coverUrl: string | null;
+  intro: string | null;
+  duration: number;
+  playUrl: string;
+  chapters: VideoChapterVO[];
+}
