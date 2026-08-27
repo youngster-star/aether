@@ -230,7 +230,7 @@ GET /aether/api/v1/storage/file/{fileId}?expires=1785000000&sign=abc123...
 | GET | /albums/recommend | 推荐图集 `?limit=3-4` |
 | GET | /albums/{id} | 图集详情（含图片列表：fileId、标题、介绍、宽高、大小） |
 | GET | /videos | 视频分页 |
-| GET | /videos/{id} | 视频详情（含时长、章节节点） |
+| GET | /videos/{id} | 视频详情（含时长、章节节点、文件扩展名 ext——播放器类型判定） |
 
 **音乐 music（公开）**
 
@@ -294,7 +294,7 @@ GET /aether/api/v1/storage/file/{fileId}?expires=1785000000&sign=abc123...
 | PUT | /admin/articles/{id}/style | 绑定独立样式 |
 | CRUD | /admin/article-styles | 文章样式管理 |
 | CRUD | /admin/categories /admin/tags | 分类标签管理（bizType 过滤） |
-| CRUD | /admin/albums | 图集管理；POST /admin/albums/{id}/images 批量添加图片（含排序/标题/介绍） |
+| CRUD | /admin/albums | 图集管理；POST /admin/albums/{id}/images 批量添加图片（含排序/标题/介绍）；DELETE /admin/albums/{id}/images/{imageId} 删除单张图片（引用归零自动物理清理） |
 | CRUD | /admin/videos | 视频管理；POST /admin/videos/{id}/chapters 管理关键时间节点 |
 | CRUD | /admin/music/albums /admin/music | 音乐合集/单曲管理（上传音频、歌词） |
 | POST | /admin/music/{id}/effect/generate | AI 生成播放特效（EffectConfig） |
