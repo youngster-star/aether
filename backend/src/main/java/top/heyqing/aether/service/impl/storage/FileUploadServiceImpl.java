@@ -1,6 +1,9 @@
 package top.heyqing.aether.service.impl.storage;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -30,12 +33,14 @@ import top.heyqing.aether.repository.StorageChunkRepository;
 import top.heyqing.aether.repository.StorageFileRepository;
 import top.heyqing.aether.security.SecurityConst;
 import top.heyqing.aether.service.storage.FileUploadService;
+import top.heyqing.aether.service.storage.MediaProbeService;
 import top.heyqing.aether.storage.FileTypeValidator;
 import top.heyqing.aether.storage.StorageRouter;
 import top.heyqing.aether.storage.StorageService;
 import top.heyqing.aether.storage.StoredFile;
 import top.heyqing.aether.storage.UploadContext;
 import top.heyqing.aether.util.DigestUtil;
+import top.heyqing.aether.util.ExifStripper;
 import top.heyqing.aether.util.ImageUtil;
 
 /**
@@ -66,11 +71,12 @@ public class FileUploadServiceImpl implements FileUploadService {
     private final StorageChunkRepository storageChunkRepository;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final MediaProbeService mediaProbeService;
 
     public FileUploadServiceImpl(CacheStore cacheStore, StorageRouter storageRouter,
                                  StorageProperties storageProperties, StorageFileRepository storageFileRepository,
                                  StorageChunkRepository storageChunkRepository, ObjectMapper objectMapper,
-                                 TransactionTemplate transactionTemplate) {
+                                 TransactionTemplate transactionTemplate, MediaProbeService mediaProbeService) {
         this.cacheStore = cacheStore;
         this.storageRouter = storageRouter;
         this.storageProperties = storageProperties;
@@ -78,6 +84,7 @@ public class FileUploadServiceImpl implements FileUploadService {
         this.storageChunkRepository = storageChunkRepository;
         this.objectMapper = objectMapper;
         this.transactionTemplate = transactionTemplate;
+        this.mediaProbeService = mediaProbeService;
     }
 
     @Override
@@ -182,15 +189,22 @@ public class FileUploadServiceImpl implements FileUploadService {
                 storage.delete(stored.objectKey());
                 throw e;
             }
-            // 元数据探测：图片宽高（音视频时长探测阶段 3/4 补充）
+            // 图片 EXIF 抹除（BackEnd-Plan §4.5）：GPS 定位信息不落存储
+            if (FileTypeValidator.isImage(session.ext())) {
+                stripExif(storage, stored.objectKey(), session.ext());
+            }
+            // 元数据探测：图片宽高 / 音视频时长（ffprobe 优先，MP4 内置解析回退，§8.2）
             Integer width = null;
             Integer height = null;
+            Integer duration = null;
             if (FileTypeValidator.isImage(session.ext())) {
                 int[] size = ImageUtil.probeSize(storage.open(stored.objectKey()));
                 if (size != null) {
                     width = size[0];
                     height = size[1];
                 }
+            } else if (FileTypeValidator.isVideoOrAudio(session.ext())) {
+                duration = mediaProbeService.probeDurationSeconds(session.ext(), storage, stored.objectKey());
             }
             // storage_file 落库（对象键 UUID 命名，原始文件名仅存元数据）
             StorageFile storageFile = new StorageFile();
@@ -203,11 +217,12 @@ public class FileUploadServiceImpl implements FileUploadService {
             storageFile.setExt(session.ext());
             storageFile.setWidth(width);
             storageFile.setHeight(height);
+            storageFile.setDuration(duration);
             storageFile.setStatus(1);
             // 短事务仅覆盖元数据落库（文件拼接/校验等耗时操作在事务外，避免长事务占连接）
             List<StorageChunk> chunks = storageChunkRepository.findByUploadIdOrderByChunkIndexAsc(uploadId);
             StorageFile saved = transactionTemplate.execute(status -> {
-                StorageFile savedFile = storageFileRepository.save(storageFile);
+                StorageFile savedFile = persistStorageFile(storage, stored.objectKey(), session.md5(), storageFile);
                 chunks.forEach(c -> {
                     c.setStatus(2);
                     storageChunkRepository.save(c);
@@ -237,6 +252,95 @@ public class FileUploadServiceImpl implements FileUploadService {
     @Override
     public InputStream openFile(StorageFile file) {
         return storageRouter.select(file.getStorageType()).open(file.getObjectKey());
+    }
+
+    /**
+     * 图片 EXIF 抹除（BackEnd-Plan §4.5，merge 落库前执行）
+     *
+     * <p>本地文件直接按路径改写；OSS 对象先溢出临时文件再 overwrite 回写。
+     * 抹除失败仅 warn 日志（安全增强项，不阻断上传），原文件保留。</p>
+     */
+    private void stripExif(StorageService storage, String objectKey, String ext) {
+        Path source = storage.localPathOf(objectKey);
+        Path spill = null;
+        try {
+            if (source == null) {
+                // 远端存储：对象溢出临时文件（图片上限 50MB，§8.4）
+                spill = Files.createTempFile("aether-exif-", "." + ext);
+                try (InputStream in = storage.open(objectKey)) {
+                    Files.copy(in, spill, StandardCopyOption.REPLACE_EXISTING);
+                }
+                source = spill;
+            }
+            Path stripped = Files.createTempFile("aether-exif-stripped-", "." + ext);
+            try {
+                if (ExifStripper.strip(source, stripped, ext)) {
+                    try (InputStream in = Files.newInputStream(stripped)) {
+                        storage.overwrite(objectKey, in);
+                    }
+                    log.info("图片 EXIF 已抹除: objectKey={}", objectKey);
+                }
+            } finally {
+                Files.deleteIfExists(stripped);
+            }
+        } catch (Exception e) {
+            log.warn("EXIF 抹除失败，保留原始文件: objectKey={}, 原因={}", objectKey, e.getMessage());
+        } finally {
+            if (spill != null) {
+                try {
+                    Files.deleteIfExists(spill);
+                } catch (Exception ignored) {
+                    // 临时文件残留由系统临时目录自清理
+                }
+            }
+        }
+    }
+
+    /**
+     * storage_file 落库（uk_md5 唯一约束处理，BackEnd-Plan §8.2/§8.3）
+     *
+     * <ul>
+     *   <li>同 md5 的 status=0 行（删除后同内容重传）：复活——旧物理文件即时清理，
+     *       行更新指向新 objectKey（EXIF 抹除后内容已确定）</li>
+     *   <li>同 md5 的 status=1 行（并发同内容上传竞态）：丢弃本次合并物理文件复用现有行</li>
+     *   <li>无同 md5 行：正常插入</li>
+     * </ul>
+     */
+    private StorageFile persistStorageFile(StorageService storage, String newObjectKey, String md5,
+                                           StorageFile storageFile) {
+        StorageFile existing = storageFileRepository.findByFileMd5(md5).orElse(null);
+        if (existing == null) {
+            return storageFileRepository.save(storageFile);
+        }
+        if (existing.getStatus() == 0) {
+            // 复活：旧 objectKey 物理文件可能仍存在（补偿 job 未执行），即时清理后指向新文件
+            if (existing.getObjectKey() != null && !existing.getObjectKey().equals(newObjectKey)) {
+                try {
+                    storage.delete(existing.getObjectKey());
+                } catch (Exception e) {
+                    log.warn("复活清理旧物理文件失败（补偿 job 兜底）: objectKey={}, 原因={}",
+                            existing.getObjectKey(), e.getMessage());
+                }
+            }
+            existing.setOriginalName(storageFile.getOriginalName());
+            existing.setObjectKey(newObjectKey);
+            existing.setSize(storageFile.getSize());
+            existing.setMimeType(storageFile.getMimeType());
+            existing.setExt(storageFile.getExt());
+            existing.setWidth(storageFile.getWidth());
+            existing.setHeight(storageFile.getHeight());
+            existing.setDuration(storageFile.getDuration());
+            existing.setStatus(1);
+            log.info("同内容文件复活: fileId={}, md5={}", existing.getId(), md5);
+            return storageFileRepository.save(existing);
+        }
+        // status=1 并发竞态：内容相同（md5 一致），丢弃本次合并产物复用现有行
+        try {
+            storage.delete(newObjectKey);
+        } catch (Exception e) {
+            log.warn("竞态清理重复物理文件失败: objectKey={}, 原因={}", newObjectKey, e.getMessage());
+        }
+        return existing;
     }
 
     /**

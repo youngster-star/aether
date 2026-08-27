@@ -1,9 +1,18 @@
 package top.heyqing.aether.config;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,23 +24,36 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import top.heyqing.aether.model.entity.AiConfig;
+import top.heyqing.aether.model.entity.Album;
+import top.heyqing.aether.model.entity.AlbumImage;
 import top.heyqing.aether.model.entity.Article;
 import top.heyqing.aether.model.entity.ArticleStyle;
 import top.heyqing.aether.model.entity.BizCategoryRel;
 import top.heyqing.aether.model.entity.BizTagRel;
 import top.heyqing.aether.model.entity.Category;
+import top.heyqing.aether.model.entity.StorageFile;
+import top.heyqing.aether.model.entity.StorageRef;
 import top.heyqing.aether.model.entity.SurveyOption;
 import top.heyqing.aether.model.entity.SysUser;
 import top.heyqing.aether.model.entity.Tag;
+import top.heyqing.aether.model.entity.Video;
+import top.heyqing.aether.model.entity.VideoChapter;
 import top.heyqing.aether.repository.AiConfigRepository;
+import top.heyqing.aether.repository.AlbumImageRepository;
+import top.heyqing.aether.repository.AlbumRepository;
 import top.heyqing.aether.repository.ArticleRepository;
 import top.heyqing.aether.repository.ArticleStyleRepository;
 import top.heyqing.aether.repository.BizCategoryRelRepository;
 import top.heyqing.aether.repository.BizTagRelRepository;
 import top.heyqing.aether.repository.CategoryRepository;
+import top.heyqing.aether.repository.StorageFileRepository;
+import top.heyqing.aether.repository.StorageRefRepository;
 import top.heyqing.aether.repository.SurveyOptionRepository;
 import top.heyqing.aether.repository.SysUserRepository;
 import top.heyqing.aether.repository.TagRepository;
+import top.heyqing.aether.repository.VideoChapterRepository;
+import top.heyqing.aether.repository.VideoRepository;
+import top.heyqing.aether.util.DigestUtil;
 
 /**
  * seed 数据初始化（BackEnd-Plan §6.4）
@@ -60,6 +82,13 @@ public class DataSeeder implements ApplicationRunner {
     private final ArticleStyleRepository articleStyleRepository;
     private final BizCategoryRelRepository bizCategoryRelRepository;
     private final BizTagRelRepository bizTagRelRepository;
+    private final AlbumRepository albumRepository;
+    private final AlbumImageRepository albumImageRepository;
+    private final VideoRepository videoRepository;
+    private final VideoChapterRepository videoChapterRepository;
+    private final StorageFileRepository storageFileRepository;
+    private final StorageRefRepository storageRefRepository;
+    private final StorageProperties storageProperties;
     private final PasswordEncoder passwordEncoder;
     private final Environment environment;
 
@@ -68,8 +97,11 @@ public class DataSeeder implements ApplicationRunner {
                       AiConfigRepository aiConfigRepository, ArticleRepository articleRepository,
                       ArticleStyleRepository articleStyleRepository,
                       BizCategoryRelRepository bizCategoryRelRepository,
-                      BizTagRelRepository bizTagRelRepository, PasswordEncoder passwordEncoder,
-                      Environment environment) {
+                      BizTagRelRepository bizTagRelRepository, AlbumRepository albumRepository,
+                      AlbumImageRepository albumImageRepository, VideoRepository videoRepository,
+                      VideoChapterRepository videoChapterRepository, StorageFileRepository storageFileRepository,
+                      StorageRefRepository storageRefRepository, StorageProperties storageProperties,
+                      PasswordEncoder passwordEncoder, Environment environment) {
         this.sysUserRepository = sysUserRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
@@ -79,6 +111,13 @@ public class DataSeeder implements ApplicationRunner {
         this.articleStyleRepository = articleStyleRepository;
         this.bizCategoryRelRepository = bizCategoryRelRepository;
         this.bizTagRelRepository = bizTagRelRepository;
+        this.albumRepository = albumRepository;
+        this.albumImageRepository = albumImageRepository;
+        this.videoRepository = videoRepository;
+        this.videoChapterRepository = videoChapterRepository;
+        this.storageFileRepository = storageFileRepository;
+        this.storageRefRepository = storageRefRepository;
+        this.storageProperties = storageProperties;
         this.passwordEncoder = passwordEncoder;
         this.environment = environment;
     }
@@ -92,6 +131,8 @@ public class DataSeeder implements ApplicationRunner {
         seedAiConfigs();
         seedArticleStyles();
         seedArticles();
+        seedAlbums();
+        seedVideos();
         log.info("seed 数据初始化完成");
     }
 
@@ -333,5 +374,264 @@ public class DataSeeder implements ApplicationRunner {
                         bizTagRelRepository.save(rel);
                     });
         }
+    }
+
+    /**
+     * 示例图集（阶段 3 开发数据：程序生成渐变占位图，走通列表→详情→预览链路；上线前清理）
+     *
+     * <p>图片文件直接写入本地存储目录并登记 storage_file + storage_ref
+     * （与上传链路产物同构，签名访问与删除一致性链路对 seed 数据同样生效）。</p>
+     */
+    private void seedAlbums() {
+        if (albumRepository.count() > 0) {
+            return;
+        }
+        // 渐变占位图（羊皮卷系配色）
+        StorageFile coverA = seedPng("album-cover-a.png", 1200, 800, 0xB49A6E, 0x6E5636);
+        StorageFile coverB = seedPng("album-cover-b.png", 1200, 800, 0x8FA3B8, 0x4A5E73);
+        StorageFile photo1 = seedPng("album-a-1.png", 800, 600, 0xC9A86B, 0x8C6F3F);
+        StorageFile photo2 = seedPng("album-a-2.png", 600, 800, 0xA8B8A0, 0x5E6E56);
+        StorageFile photo3 = seedPng("album-a-3.png", 800, 600, 0xB87E6E, 0x78443A);
+        StorageFile photo4 = seedPng("album-a-4.png", 600, 800, 0x9E9EC0, 0x54546E);
+        StorageFile photo5 = seedPng("album-b-1.png", 800, 600, 0xB4A08C, 0x6E5A48);
+        StorageFile photo6 = seedPng("album-b-2.png", 800, 600, 0x8CB4A8, 0x48706A);
+
+        Album albumA = new Album();
+        albumA.setTitle("山野拾光");
+        albumA.setCoverFileId(coverA.getId());
+        albumA.setIntro("山谷、溪流与旧木屋——一组暖色调的乡野记录。");
+        albumA.setIsRecommend(1);
+        albumA.setSort(10);
+        albumRepository.save(albumA);
+        bindRef(coverA.getId(), "album", albumA.getId());
+        addSeedImage(albumA.getId(), photo1, "晨雾", "清晨薄雾未散时的山谷", 0);
+        addSeedImage(albumA.getId(), photo2, "溪石", "溪水漫过卵石的长曝光", 1);
+        addSeedImage(albumA.getId(), photo3, "旧木屋", "林间废弃木屋的一角", 2);
+        addSeedImage(albumA.getId(), photo4, "暮色", "暮色里的远山剪影", 3);
+
+        Album albumB = new Album();
+        albumB.setTitle("城市漫步");
+        albumB.setCoverFileId(coverB.getId());
+        albumB.setIntro("在街道与天桥之间穿行，记录城市安静的一面。");
+        albumB.setIsRecommend(1);
+        albumB.setSort(5);
+        albumRepository.save(albumB);
+        bindRef(coverB.getId(), "album", albumB.getId());
+        addSeedImage(albumB.getId(), photo5, "天桥", "黄昏天桥下的车流", 0);
+        addSeedImage(albumB.getId(), photo6, "巷口", "老城区巷口的午后", 1);
+        log.info("seed: 示例图集 2 个已创建（阶段 3 开发数据）");
+    }
+
+    /**
+     * 示例视频（阶段 3 开发数据：程序构造最小 MP4 占位——仅 ftyp+moov/mvhd 无音视频轨，
+     * 可验证 MP4 内置时长解析回退路径；真实视频由站长上传替换，上线前清理）
+     */
+    private void seedVideos() {
+        if (videoRepository.count() > 0) {
+            return;
+        }
+        StorageFile cover = storageFileRepository.findAll().stream()
+                .filter(file -> file.getExt() != null && "png".equals(file.getExt()))
+                .findFirst()
+                .orElse(null);
+        StorageFile videoFile1 = seedMp4("seed-video-1.mp4", 300);
+        StorageFile videoFile2 = seedMp4("seed-video-2.mp4", 180);
+
+        Video video1 = new Video();
+        video1.setTitle("以太小站开发记录");
+        video1.setCoverFileId(cover == null ? null : cover.getId());
+        video1.setIntro("阶段 1-2 开发回顾：从脚手架到文章模块上线。");
+        video1.setFileId(videoFile1.getId());
+        video1.setDuration(videoFile1.getDuration());
+        video1.setIsRecommend(1);
+        videoRepository.save(video1);
+        bindRef(videoFile1.getId(), "video", video1.getId());
+        if (cover != null) {
+            bindRef(cover.getId(), "video", video1.getId());
+        }
+        addSeedChapter(video1.getId(), "开场", 0, 0);
+        addSeedChapter(video1.getId(), "后端基础", 60, 1);
+        addSeedChapter(video1.getId(), "文章模块", 150, 2);
+        addSeedChapter(video1.getId(), "总结", 260, 3);
+
+        Video video2 = new Video();
+        video2.setTitle("羊皮卷设计手记");
+        video2.setCoverFileId(cover == null ? null : cover.getId());
+        video2.setIntro("设计基调定稿回顾：配色、字体与动效规范。");
+        video2.setFileId(videoFile2.getId());
+        video2.setDuration(videoFile2.getDuration());
+        video2.setIsRecommend(0);
+        videoRepository.save(video2);
+        bindRef(videoFile2.getId(), "video", video2.getId());
+        if (cover != null) {
+            bindRef(cover.getId(), "video", video2.getId());
+        }
+        addSeedChapter(video2.getId(), "定稿回顾", 0, 0);
+        addSeedChapter(video2.getId(), "配色 Tokens", 45, 1);
+        log.info("seed: 示例视频 2 个已创建（阶段 3 开发数据）");
+    }
+
+    /**
+     * 生成渐变占位 PNG 并登记 storage_file（与上传链路产物同构）
+     */
+    private StorageFile seedPng(String originalName, int width, int height, int fromRgb, int toRgb) {
+        byte[] bytes = renderGradientPng(width, height, fromRgb, toRgb);
+        String objectKey = "files/" + UUID.randomUUID().toString().replace("-", "") + ".png";
+        Path target = Path.of(storageProperties.getLocalBaseDir()).toAbsolutePath().normalize()
+                .resolve(objectKey);
+        try {
+            Files.createDirectories(target.getParent());
+            Files.write(target, bytes);
+        } catch (IOException e) {
+            throw new IllegalStateException("seed 图片写入失败: " + objectKey, e);
+        }
+        StorageFile file = new StorageFile();
+        file.setOriginalName(originalName);
+        file.setStorageType(1);
+        file.setObjectKey(objectKey);
+        file.setSize((long) bytes.length);
+        file.setFileMd5(DigestUtil.sha256Hex(new java.io.ByteArrayInputStream(bytes)));
+        file.setMimeType("image/png");
+        file.setExt("png");
+        file.setWidth(width);
+        file.setHeight(height);
+        file.setStatus(1);
+        return storageFileRepository.save(file);
+    }
+
+    /**
+     * 构造最小 MP4（ftyp + moov/mvhd，无音视频轨）并登记 storage_file
+     *
+     * <p>合法 ISO BMFF 结构：ffprobe 与内置 mvhd 解析均可读出时长；
+     * 播放器无轨无法播放，仅作列表/时长链路联调占位。</p>
+     */
+    private StorageFile seedMp4(String originalName, int durationSeconds) {
+        ByteBuffer buf = ByteBuffer.allocate(136);
+        // ftyp box（20 字节）：major=isom, minor=0x200, compat=isom
+        buf.putInt(20);
+        buf.put("ftyp".getBytes(StandardCharsets.US_ASCII));
+        buf.put("isom".getBytes(StandardCharsets.US_ASCII));
+        buf.putInt(0x200);
+        buf.put("isom".getBytes(StandardCharsets.US_ASCII));
+        // moov box（116 字节）
+        buf.putInt(116);
+        buf.put("moov".getBytes(StandardCharsets.US_ASCII));
+        // mvhd box v0（108 字节）：timescale=1000, duration=durationSeconds*1000
+        buf.putInt(108);
+        buf.put("mvhd".getBytes(StandardCharsets.US_ASCII));
+        buf.put((byte) 0); // version
+        buf.put(new byte[]{0, 0, 0}); // flags
+        buf.putInt(0); // creation_time
+        buf.putInt(0); // modification_time
+        buf.putInt(1000); // timescale
+        buf.putInt(durationSeconds * 1000); // duration
+        buf.putInt(0x00010000); // rate 1.0
+        buf.putShort((short) 0x0100); // volume 1.0
+        buf.putShort((short) 0); // reserved
+        buf.put(new byte[8]); // reserved[2]
+        // 单位矩阵（36 字节）
+        buf.putInt(0x00010000);
+        buf.putInt(0);
+        buf.putInt(0);
+        buf.putInt(0);
+        buf.putInt(0x00010000);
+        buf.putInt(0);
+        buf.putInt(0);
+        buf.putInt(0);
+        buf.putInt(0x40000000);
+        buf.put(new byte[24]); // pre_defined[6]
+        buf.putInt(2); // next_track_ID
+        byte[] bytes = buf.array();
+
+        String objectKey = "files/" + UUID.randomUUID().toString().replace("-", "") + ".mp4";
+        Path target = Path.of(storageProperties.getLocalBaseDir()).toAbsolutePath().normalize()
+                .resolve(objectKey);
+        try {
+            Files.createDirectories(target.getParent());
+            Files.write(target, bytes);
+        } catch (IOException e) {
+            throw new IllegalStateException("seed 视频写入失败: " + objectKey, e);
+        }
+        StorageFile file = new StorageFile();
+        file.setOriginalName(originalName);
+        file.setStorageType(1);
+        file.setObjectKey(objectKey);
+        file.setSize((long) bytes.length);
+        file.setFileMd5(DigestUtil.sha256Hex(new java.io.ByteArrayInputStream(bytes)));
+        file.setMimeType("video/mp4");
+        file.setExt("mp4");
+        file.setDuration(durationSeconds);
+        file.setStatus(1);
+        return storageFileRepository.save(file);
+    }
+
+    /**
+     * 渲染水平双色渐变 PNG（ImageIO 内存渲染，seed 专用）
+     */
+    private byte[] renderGradientPng(int width, int height, int fromRgb, int toRgb) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        int fromR = (fromRgb >> 16) & 0xFF;
+        int fromG = (fromRgb >> 8) & 0xFF;
+        int fromB = fromRgb & 0xFF;
+        int toR = (toRgb >> 16) & 0xFF;
+        int toG = (toRgb >> 8) & 0xFF;
+        int toB = toRgb & 0xFF;
+        for (int y = 0; y < height; y++) {
+            double ratio = (double) y / Math.max(height - 1, 1);
+            int r = fromR + (int) ((toR - fromR) * ratio);
+            int g = fromG + (int) ((toG - fromG) * ratio);
+            int b = fromB + (int) ((toB - fromB) * ratio);
+            int rgb = (r << 16) | (g << 8) | b;
+            for (int x = 0; x < width; x++) {
+                image.setRGB(x, y, rgb);
+            }
+        }
+        try (java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+            ImageIO.write(image, "png", out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new IllegalStateException("seed 图片渲染失败", e);
+        }
+    }
+
+    /**
+     * 登记业务-文件引用（seed 数据与上传链路产物同构，§8.3 删除一致性同样生效）
+     */
+    private void bindRef(Long fileId, String bizType, Long bizId) {
+        if (fileId == null) {
+            return;
+        }
+        StorageRef ref = new StorageRef();
+        ref.setFileId(fileId);
+        ref.setBizType(bizType);
+        ref.setBizId(bizId);
+        ref.setRefCount(1);
+        storageRefRepository.save(ref);
+    }
+
+    /**
+     * 添加图集图片（含排序/标题/介绍）并登记引用
+     */
+    private void addSeedImage(Long albumId, StorageFile file, String title, String intro, int sort) {
+        AlbumImage image = new AlbumImage();
+        image.setAlbumId(albumId);
+        image.setFileId(file.getId());
+        image.setTitle(title);
+        image.setIntro(intro);
+        image.setSort(sort);
+        albumImageRepository.save(image);
+        bindRef(file.getId(), "album", albumId);
+    }
+
+    /**
+     * 添加视频关键时间节点
+     */
+    private void addSeedChapter(Long videoId, String title, int timeOffset, int sort) {
+        VideoChapter chapter = new VideoChapter();
+        chapter.setVideoId(videoId);
+        chapter.setTitle(title);
+        chapter.setTimeOffset(timeOffset);
+        chapter.setSort(sort);
+        videoChapterRepository.save(chapter);
     }
 }

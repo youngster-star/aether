@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
@@ -27,6 +28,20 @@ public class StorageServiceConfiguration {
     @Bean
     public StorageService localStorageService(StorageProperties properties) {
         return new LocalStorageServiceImpl(properties);
+    }
+
+    /**
+     * 存储清理线程池（引用归零文件的事务提交后物理删除，BackEnd-Plan §8.3）
+     */
+    @Bean(name = "storageCleanExecutor")
+    public ThreadPoolTaskExecutor storageCleanExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setThreadNamePrefix("storage-clean-");
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(200);
+        executor.initialize();
+        return executor;
     }
 
     /**

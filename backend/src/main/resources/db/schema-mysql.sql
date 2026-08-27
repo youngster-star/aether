@@ -154,6 +154,7 @@ CREATE TABLE `album_image` (
   `intro`       VARCHAR(500) NULL                    COMMENT '图片介绍（可选）',
   `sort`        INT          NOT NULL DEFAULT 0      COMMENT '排序号',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_album` (`album_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='图集图片表';
@@ -180,6 +181,7 @@ CREATE TABLE `video_chapter` (
   `time_offset` INT          NOT NULL                COMMENT '时间偏移（秒）',
   `sort`        INT          NOT NULL DEFAULT 0      COMMENT '排序号',
   `create_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_video` (`video_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='视频关键时间节点表';

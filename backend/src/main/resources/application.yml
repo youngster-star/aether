@@ -30,6 +30,9 @@ spring:
 
 # ===== Aether 业务配置（BackEnd-Plan §4/§8） =====
 aether:
+  media:
+    # ffprobe 可执行文件路径（时长探测，§8.2）；生产 backend 容器内置，dev 本机无则回退 MP4 内置解析
+    ffprobe-path: ${FFPROBE_PATH:ffprobe}
   cache:
     # 缓存实现：redis（prod）/ memory（dev 回退，Redis 未就绪时）
     store: ${CACHE_STORE:redis}

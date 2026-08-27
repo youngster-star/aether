@@ -98,6 +98,15 @@ public class OssStorageServiceImpl implements StorageService {
     }
 
     @Override
+    public void overwrite(String objectKey, InputStream in) {
+        try (in) {
+            client.putObject(bucket, objectKey, in);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.STORAGE_ERROR, "OSS 对象覆盖写失败");
+        }
+    }
+
+    @Override
     public int storageType() {
         return 2;
     }

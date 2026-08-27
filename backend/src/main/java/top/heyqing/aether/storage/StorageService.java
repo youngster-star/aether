@@ -56,4 +56,23 @@ public interface StorageService {
     default int storageType() {
         return 1;
     }
+
+    /**
+     * 覆盖写对象（EXIF 抹除等合并后内容重写场景，BackEnd-Plan §4.5）
+     *
+     * <p>本地=文件覆盖（REPLACE_EXISTING）；OSS=putObject 覆盖同 key。</p>
+     *
+     * @param objectKey 对象键（与 merge 返回的一致）
+     * @param in        新内容流（调用方负责关闭）
+     */
+    void overwrite(String objectKey, InputStream in);
+
+    /**
+     * 对象键对应的本地文件路径（本地实现返回绝对路径；OSS 等远端实现返回 null）
+     *
+     * <p>供需要按文件路径工作的工具使用（EXIF 抹除/ffprobe 时长探测）。</p>
+     */
+    default java.nio.file.Path localPathOf(String objectKey) {
+        return null;
+    }
 }

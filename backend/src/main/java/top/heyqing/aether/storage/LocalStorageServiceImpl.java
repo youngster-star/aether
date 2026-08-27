@@ -114,6 +114,20 @@ public class LocalStorageServiceImpl implements StorageService {
         return Files.exists(baseDir.resolve(objectKey));
     }
 
+    @Override
+    public void overwrite(String objectKey, InputStream in) {
+        try (in) {
+            Files.copy(in, baseDir.resolve(objectKey), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.STORAGE_ERROR, "文件覆盖写失败");
+        }
+    }
+
+    @Override
+    public Path localPathOf(String objectKey) {
+        return baseDir.resolve(objectKey);
+    }
+
     private Path chunkDir(String uploadId) {
         return baseDir.resolve("chunks").resolve(uploadId);
     }

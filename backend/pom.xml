@@ -83,6 +83,12 @@
             <artifactId>jsoup</artifactId>
             <version>1.19.1</version>
         </dependency>
+        <!-- commons-imaging：图片 EXIF 抹除（BackEnd-Plan §4.5，JPEG 无损剥离定位信息） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-imaging</artifactId>
+            <version>1.0-alpha3</version>
+        </dependency>
         <!-- 阿里云 OSS SDK（BackEnd-Plan §8；阶段 9 部署环境凭据联调） -->
         <dependency>
             <groupId>com.aliyun.oss</groupId>

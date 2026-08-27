@@ -51,6 +51,9 @@ public final class FileTypeValidator {
     /** 图片扩展名集合（merge 后探测宽高用） */
     private static final Set<String> IMAGE_EXTS = Set.of("jpg", "jpeg", "png", "gif", "webp");
 
+    /** 音视频扩展名集合（merge 后时长探测用，BackEnd-Plan §8.2） */
+    private static final Set<String> AV_EXTS = Set.of("mp4", "webm", "mp3", "flac", "wav", "aac", "m4a");
+
     private FileTypeValidator() {
     }
 
@@ -121,6 +124,20 @@ public final class FileTypeValidator {
      */
     public static boolean isImage(String ext) {
         return IMAGE_EXTS.contains(ext);
+    }
+
+    /**
+     * 是否音视频（merge 后时长探测判断用）
+     */
+    public static boolean isVideoOrAudio(String ext) {
+        return AV_EXTS.contains(ext);
+    }
+
+    /**
+     * 是否视频（管理端视频模块校验用，仅 mp4/webm）
+     */
+    public static boolean isVideo(String ext) {
+        return "mp4".equals(ext) || "webm".equals(ext);
     }
 
     /**
