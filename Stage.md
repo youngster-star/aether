@@ -31,7 +31,7 @@
 
 ### 1.3 当前阶段
 
-- 项目状态：**阶段 3 进行中**（2026-08-27 代码完成并推送 dkb/dev，测试门禁 6 维度 PASS：后端 32/32 + 前端 lint/build + 安全/注释/功能/效率审查；联调通过，待站长浏览器视觉验收后打勾）；阶段 2 已完成（2026-08-27 站长浏览器视觉验收通过 ✅）；阶段 1 已完成（2026-08-25）
+- 项目状态：**阶段 3 进行中**（2026-08-27 代码完成；联调通过：签名 200/Range 206/直链拒绝/SSR 渲染正常；后端测试 33/33 PASS；门禁首轮反馈 4 项已修复——refCount 递减保活/签名过期自动重拉/webm 类型/文档同步，全维度复测通过后推送 dkb/dev；待站长浏览器视觉验收后打勾）；阶段 2 已完成（2026-08-27 站长浏览器视觉验收通过 ✅）；阶段 1 已完成（2026-08-25）
 - 阶段 3 实现要点：图集/视频后端全链路（表/仓储/公开 API/管理 API）；签名 URL 播放 + Range 206（视频拖动）；图片上传 EXIF 抹除（JPEG 无损剥离/PNG eXIf 过滤）；时长探测 ffprobe 优先 + MP4/M4A 内置 mvhd 解析回退；storage_ref 引用登记 + 删除一致性（引用归零 status=0 → 事务提交后异步物理删除 → 补偿 job 每 10 分钟重试 3 天）+ uk_md5 复活（删除后同内容重传）；前端图集/视频列表与详情页（Lens 语义卡片、瀑布流 + pixel-image 懒加载、防下载预览层、ArtPlayer 倍速/清晰度/画中画/章节跳转）+ 主页推荐图集区块 + ProtectedImage 全站封面统一接入
 - 阶段 3 说明：① seed 视频为程序构造的最小 MP4（仅 ftyp+moov/mvhd 无音视频轨，列表/时长/章节链路可联调，播放会失败并提示占位），真实视频待站长上传替换（管理端上传控件阶段 8）；② 本机无 ffprobe，时长探测走 MP4 内置解析回退（已测试验证），生产 backend 容器内置 ffprobe（阶段 9 部署时确认）；③ 图集/视频管理 UI（上传控件/节点编辑器）属阶段 8 管理端范围，阶段 3 交付 API + 集成测试；④ magicui 动效按既定安排延后统一引入（Lens/pixel-image 为 framer-motion 简化实现）
 - 阶段 2 遗留问题：① ~~站长浏览器视觉验收~~ ✅ 已通过（2026-08-27）；② 文章搜索 LIKE 通配符 `%`/`_` 未转义（低危，仅影响搜索语义，无注入风险，见 BackEnd-Plan 附录 B）；③ 日统计 job 事务缺失 bug 已修（62fffbe，测试假阳性掩盖，回归通过）
@@ -48,7 +48,7 @@
 | 2026-08-25 | f864c3c..b0d8b7a | 阶段 1 后端基础（统一返回/登录三级防护/JWT/存储双实现/分片秒传）+ 修复项（security/storage） |
 | 2026-08-27 | 47aa302..62fffbe | 阶段 2 代码（游客 IP 分析 + 文章模块前后端全链路）+ 文档同步 + 日统计 job 事务修复；门禁 6 维度 PASS |
 | 2026-08-27 | 62fffbe..b2eefe5 | 测试门禁机制升级：文档同步门禁（push 含代码变更必须伴随 Stage.md，双 hook 规则 3 强制）+ 门禁文档同步（CLAUDE.md 第 5 条/README/Stage.md）+ 首次推送回退路径与 .gitignore 豁免修复 + BackEnd-Plan 附录 B LIKE 转义遗留 |
-| 2026-08-27 | b2eefe5..6920123 | 阶段 3 图集+视频：后端全链路（album/album_image/video/video_chapter 表 + 公开/管理 API）+ 签名 URL Range 206 + 图片 EXIF 抹除（commons-imaging）+ 时长探测（ffprobe + MP4 内置回退）+ storage_ref 删除一致性（归零清理/补偿 job/uk_md5 复活）+ 前端图集/视频 4 页 + ArtPlayer + 防下载预览层 + ProtectedImage 统一接入 + 主页推荐图集区块 + seed 数据与 7 项集成测试（32/32 PASS）；BackEnd-Plan §1/§4.5/§6.2/§8.2 同步 |
+| 2026-08-27 | b2eefe5..ed63e37 | 阶段 3 图集+视频：后端全链路（album/album_image/video/video_chapter 表 + 公开/管理 API）+ 签名 URL Range 206 + 图片 EXIF 抹除（commons-imaging）+ 时长探测（ffprobe + MP4 内置回退）+ storage_ref 删除一致性（归零清理/补偿 job/uk_md5 复活/refCount 递减保活）+ 前端图集/视频 4 页 + ArtPlayer（webm 类型判定）+ 防下载预览层 + ProtectedImage 统一接入（签名过期自动重拉）+ 主页推荐图集区块 + seed 数据与 8 项集成测试（33/33 PASS，含门禁反馈修复）；BackEnd-Plan §1/§4.5/§5.2/§6.2/§8.2 同步 |
 
 ## 2 开发阶段
 
