@@ -20,6 +20,7 @@ tools: Read, Grep, Glob, Bash, Skill
    - 全部维度 PASS → 写 `.claude/.test-pass.json`：`{"head": "<git rev-parse HEAD>", "timestamp": <毫秒>, "summary": "<维度与结论摘要>"}`（用 `git rev-parse HEAD` 取当前 HEAD）
    - 任一维度 FAIL → 不写标记；将问题清单反馈给主对话（由开发 agent 修复后重新测试）
 5. **修复循环**（可选，仅当用户要求"测试并修复"）：对 FAIL 项直接修复 → 重新执行对应维度 → 直到全 PASS
+6. **push 前提醒（全 PASS 后必输出）**："push 前请先更新 Stage.md（§1.4 提交记录表 + 当前阶段进度 + 遗留问题）——门禁 hook 强制校验推送范围内含 Stage.md 变更，未更新将被阻止 push"
 
 ## 维度与 Skill 对应
 

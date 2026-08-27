@@ -5,8 +5,9 @@
  * 拦截 git push 前的检查逻辑：
  *   1. 命令含 --no-verify            → 放行（逃生口）
  *   2. 本次推送仅文档改动（md/txt）   → 放行
- *   3. .claude/.test-pass.json 有效   → 放行（HEAD 匹配 + 24 小时内）
- *   4. 其余情况                       → deny，提示先跑 /test
+ *   3. 推送含代码变更但无 Stage.md    → deny（文档同步门禁：进度必须随代码入库）
+ *   4. .claude/.test-pass.json 有效   → 放行（HEAD 匹配 + 24 小时内）
+ *   5. 其余情况                       → deny，提示先跑 /test
  *
  * stdin：Claude Code hook 标准 JSON（含 tool_input.command，字符串化）
  * stdout：单行 JSON（hookSpecificOutput），不得输出其他内容
@@ -67,9 +68,18 @@ try {
       reply('allow');
       process.exit(0);
     }
+
+    // 3. 文档同步门禁：推送含代码变更（非 md/txt）时，必须伴随 Stage.md 更新
+    //    （Stage.md §1.4 提交记录 + 当前阶段进度，CLAUDE.md 测试门禁第 5 条）
+    if (list.length > 0 && !list.includes('Stage.md')) {
+      reply('deny',
+        '文档同步门禁未通过：push 含代码变更时必须先更新 Stage.md' +
+        '（§1.4 提交记录表 + 当前阶段进度 + 遗留问题）后再推送');
+      process.exit(0);
+    }
   }
 
-  // 3. 测试通过标记：HEAD 匹配 + 24 小时内有效
+  // 4. 测试通过标记：HEAD 匹配 + 24 小时内有效
   const passPath = path.join(process.cwd(), '.claude', '.test-pass.json');
   let pass = null;
   try {

@@ -4,18 +4,27 @@
 # 拦截场景：在终端手动敲 git push 时（Claude Code 内由 .claude/hooks/pre-push-gate.js 拦截）
 # 逻辑与 Claude 侧 hook 一致：
 #   1. 纯文档改动（md/txt）→ 放行
-#   2. .claude/.test-pass.json 有效（HEAD 匹配 + 24h 内）→ 放行
-#   3. 否则阻止（git push --no-verify 由 git 自身处理跳过本 hook）
+#   2. 推送含代码变更但无 Stage.md → 阻止（文档同步门禁：进度必须随代码入库）
+#   3. .claude/.test-pass.json 有效（HEAD 匹配 + 24h 内）→ 放行
+#   4. 否则阻止（git push --no-verify 由 git 自身处理跳过本 hook）
 #
 # stdin：每行 "<local ref> <local sha> <remote ref> <remote sha>"
+# 注意：git 只向 pre-push 喂数据一次，先缓存到临时文件再遍历
 # 初始化：bash scripts/setup-hooks.sh（git config core.hooksPath .githooks）
 
 set -u
 
 PASS_FILE=".claude/.test-pass.json"
 DOCS_ONLY=1
+STAGE_UPDATED=0
 
-# 汇总本次推送所有 ref 的改动文件，判定是否纯文档改动
+# git 仅喂数据一次：stdin 先落临时文件，后续统一从文件遍历
+STDIN_CACHE=$(mktemp)
+cat > "$STDIN_CACHE"
+
+# 汇总本次推送所有 ref 的改动文件：
+# - 判定是否纯文档改动（md/txt）
+# - 判定是否包含 Stage.md（代码变更时的文档同步门禁）
 while read -r local_ref local_sha remote_ref remote_sha; do
   [ -z "$local_ref" ] && continue
   # 删除分支（local_sha 全 0）：无新增代码，跳过
@@ -33,19 +42,38 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   fi
   while IFS= read -r f; do
     [ -z "$f" ] && continue
+    if [ "$f" = "Stage.md" ]; then
+      STAGE_UPDATED=1
+    fi
     case "$f" in
       *.md | *.txt) ;;
       *) DOCS_ONLY=0 ;;
     esac
   done <<< "$FILES"
-done
+done < "$STDIN_CACHE"
+rm -f "$STDIN_CACHE"
 
-# 纯文档改动放行
+# 1. 纯文档改动放行
 if [ "$DOCS_ONLY" = "1" ]; then
   exit 0
 fi
 
-# 检查测试通过标记
+# 2. 文档同步门禁：推送含代码变更时，必须伴随 Stage.md 更新
+#    （Stage.md §1.4 提交记录表 + 当前阶段进度 + 遗留问题，CLAUDE.md 测试门禁第 5 条）
+if [ "$STAGE_UPDATED" = "0" ]; then
+  echo ""
+  echo "=============================================================="
+  echo " Aether 文档同步门禁：push 被阻止"
+  echo " 原因：push 含代码变更时必须先更新 Stage.md"
+  echo "       （§1.4 提交记录表 + 当前阶段进度 + 遗留问题）"
+  echo " 处理：更新 Stage.md 并提交后再推送"
+  echo " 紧急跳过：git push --no-verify（需向开发负责人说明）"
+  echo "=============================================================="
+  echo ""
+  exit 1
+fi
+
+# 3. 检查测试通过标记
 if [ -f "$PASS_FILE" ]; then
   HEAD=$(git rev-parse HEAD)
   PASS_HEAD=$(sed -n 's/.*"head"[[:space:]]*:[[:space:]]*"\([a-f0-9]*\)".*/\1/p' "$PASS_FILE")
