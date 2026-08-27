@@ -31,8 +31,9 @@
 
 ### 1.3 当前阶段
 
-- 项目状态：**阶段 1 已完成**（2026-08-25，12 个测试全绿 + 冒烟验证通过），进入阶段 2（用户+文章）
-- 说明：dev docker-compose 文件已就绪（deploy/docker-compose.dev.yml），Docker 环境按用户要求在项目末期统一安装，届时运行验证；本地开发暂用后端 dev profile 回退方案（H2 内存库 + 内存 CacheStore）
+- 项目状态：**阶段 2 进行中**（2026-08-25 代码完成：游客 IP 分析 + 日统计 job + 文章模块前后端全链路联调通过；待站长浏览器视觉验收后打勾）；阶段 1 已完成（2026-08-25）
+- 前端动效说明（2026-08-27）：阶段 2 前端 UI 动效为**联调用语义简化版**（magicui 依赖未引入，Hero 悬浮信息面板/光环动画、AetherRing 加载与版权区动画、热门卡片排名动效与"阅读"按钮等以 framer-motion 简化实现或暂缺），**非最终效果**；待 UI 视觉打磨阶段引入 magicui 按 UI-Plan §7 清单统一补齐（站长已确认此安排）
+- 说明：dev docker-compose 文件已就绪（deploy/docker-compose.dev.yml），Docker 环境按用户要求在项目末期统一安装；本地开发后端用 `local,dev` profile 组合连接真实 MySQL（application-local.yml，测试仍用 dev H2 内存库 + 内存 CacheStore）
 - 提前完成：阶段 2 的设计基调确认已提前执行（2026-08-24，站长选定方案 D · 羊皮卷，展示页仅本地保留（design/moodboards/，不入库），tokens 与 LOGO 定稿见 UI-Plan §2/§3）
 - 阶段 1 实现适配记录（BackEnd-Plan 已同步）：Hutool Captcha 替代 easy-captcha（javax.servlet 冲突）；CacheStore 抽象（Redis/内存双实现，dev 回退）；Boot 4.1 模块化适配（无 starter-aop 改用 spring-aop+aspectjweaver、MockMvc 测试模块 spring-boot-starter-webmvc-test、Jackson 3 tools.jackson 包名、Argon2 需显式引 bcprov-jdk18on、Hibernate 7 @Comment 已废弃故表注释以 schema-mysql.sql 为准）
 
@@ -145,7 +146,7 @@
 | --- | --- | --- | --- |
 | 0 | 项目脚手架 | 无 | ✅ 已完成（2026-08-24） |
 | 1 | 后端基础 | 0 | ✅ 已完成（2026-08-25） |
-| 2 | 用户+文章 | 1 | ⬜ 待开始 |
+| 2 | 用户+文章 | 1 | 🔄 进行中（代码完成：后端 25 测试全绿 + 前后端联调通过；待站长浏览器视觉验收：吸顶栏 5-8%、悬停反色与参考风格一致性；前端动效为简化版，见 §1.3 说明，magicui 引入延后统一优化） |
 | 3 | 视频+图片 | 1 | ⬜ 待开始 |
 | 4 | 音乐 | 1 | ⬜ 待开始 |
 | 5 | 书籍 | 0、1 | ⬜ 待开始 |

@@ -364,7 +364,7 @@ frontend/
 | 正文渲染 | `content_html` 经 DOMPurify sanitize 后渲染；注入文章独立样式（article_style.style_json → CSS Variables 容器内联，覆盖默认排版）；排版参数：字号/行高/段间距/首行缩进/主题色/衬线开关/内容区宽度 |
 | 吸顶标题栏 | 滚动页面 5%-8% 时顶部浮现（§8.1，参考 article-02 横幅效果——本项目用 accent 横幅 + 标题文字） |
 | RELATED ARTICLES | 文章末尾 + 网页最右侧竖排透明文字按钮（§8.2，参考 article-03/04） |
-| 阅读数 | 详情接口自动计数（后端 IP 去重） |
+| 阅读数 | 详情接口自动计数（后端 IP 去重）；**SSR 预取带 `X-Aether-No-Count: 1` 跳过计数，浏览器 hydrate 补偿请求以真实访客 IP 计数（阶段 2 落地，2026-08-25）** |
 
 ### 6.4 图集列表与详情（参考 photo-01）
 
@@ -554,11 +554,13 @@ src.connect(analyser); analyser.connect(ctx.destination);
 ### 9.3 XSS
 
 - 所有富文本（文章/公告/书籍章节）渲染前 DOMPurify sanitize（白名单与后端 jsoup 对齐）
+- **SSR 双保险落地方式（阶段 2，2026-08-25）**：SSR 渲染后端已 jsoup 清洗的 HTML（DOMPurify 依赖浏览器环境不可用）；客户端挂载后动态加载 DOMPurify 二次清洗再替换
 - AI 沙箱代码仅限 iframe sandbox 执行（§8.4 第三层）
 
 ### 9.4 管理端鉴权
 
 - proxy.ts（Next 16 已用 proxy 替代 middleware）：`/aether/cryptex/*`（login 除外）校验 Access Token（存在 + 未过期），失败 302 `/aether/cryptex/login`；API 401 时 api client 自动走 refresh 流程（`/auth/refresh`），refresh 失败登出
+- **proxy.ts 已落地（阶段 2，2026-08-25，i18n 部分）**：next-intl `createMiddleware` 无前缀 rewrite 与 Next 16 basePath 组合存在 404 兼容问题，改为最小自实现（Cookie `NEXT_LOCALE` → `X-NEXT-INTL-LOCALE` header 注入，逻辑等价）；JWT 校验在阶段 8 追加
 
 ## 10 响应式设计
 
@@ -605,7 +607,8 @@ npm install framer-motion next-themes next-intl dompurify echarts artplayer
 ### 12.3 待办与遗留问题
 
 1. ~~设计基调确认~~ ✅ 已完成（2026-08-24）：站长选定方案 D · 羊皮卷（展示页 design/moodboards/style-d.html，仅本地保留不入库），§2 tokens 与 §3 LOGO 已定稿；阶段 2 前端按本文档落地
-2. 中文衬线字体（标题 Noto Serif SC 900 + 正文 Noto Serif SC）体积较大且全站使用，需子集化/按需加载（`next/font` display=swap），必要时正文中文考虑系统宋体栈直用（免下载）
-3. ArtPlayer 清晰度切换依赖多码率源文件，站长上传单文件时该按钮隐藏（预留多码率扩展）
-4. 歌词时间轴：LRC 优先 + 纯文本均分兜底 + 打点校准 + 全局偏移（BackEnd-Plan §7.6）；AI 自动对齐为可选增强
-5. ECharts 中国地图 GeoJSON 数据源需随行政区划更新（打包内置）
+2. **magicui 依赖未引入（2026-08-27 标注，站长已确认延后）**：阶段 2 前端动效为联调用语义简化版（framer-motion 自实现），非最终效果——Hero 图片 LOGO 底 + kinetic-text 逐字字重动画 + 光环苏醒、AetherRing 加载/版权区滚动展开动画（§3.4）、热门卡片 kinetic-text 排名数字与 interactive-hover-button "阅读"按钮等均待 UI 视觉打磨阶段按 §7 清单引入 magicui 统一补齐
+3. 中文衬线字体（标题 Noto Serif SC 900 + 正文 Noto Serif SC）体积较大且全站使用，需子集化/按需加载（`next/font` display=swap），必要时正文中文考虑系统宋体栈直用（免下载）
+4. ArtPlayer 清晰度切换依赖多码率源文件，站长上传单文件时该按钮隐藏（预留多码率扩展）
+5. 歌词时间轴：LRC 优先 + 纯文本均分兜底 + 打点校准 + 全局偏移（BackEnd-Plan §7.6）；AI 自动对齐为可选增强
+6. ECharts 中国地图 GeoJSON 数据源需随行政区划更新（打包内置）

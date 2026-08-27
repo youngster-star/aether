@@ -12,7 +12,8 @@
 | Spring Data JPA | 随 Boot BOM | 需求文档指定 JPA；Hibernate 7.4 |
 | MySQL | 8.4 LTS | 8.0 已 EOL（2026-04-30）；字符集 utf8mb4 |
 | Redis | 8.x | 限流、验证码、Refresh token 白名单、分片进度。SSPL 许可自托管个人使用无碍 |
-| ip2region | v3.17.0（xdb） | 离线 IP 定位，IPv4/IPv6、微秒级查询；`BufferCache` 全量内存（xdb 约 11MB） |
+| ip2region | 2.7.0 + xdb 数据文件 | 离线 IP 定位，IPv4/IPv6、微秒级查询；`BufferCache` 全量内存（xdb 约 11MB）。数据文件采用 2025-09 版 v2 格式 xdb（仓库现行 master 已切 v4/v6 双文件新格式，其 Java 3.x 库尚未发布 Maven 中心，故采用中心版 2.7.0 + 历史 v2 数据文件；数据更新策略见附录 B） |
+| jsoup | 1.19.x | 富文本 XSS sanitize 白名单过滤（§4.3，文章/公告/书籍内容入库前清洗） |
 | LangChain4j | 1.19.0 | 统一 Ollama（本地）+ DeepSeek（OpenAI 兼容协议）双 provider |
 | 验证码 | Hutool Captcha 5.8.x | 图形验证码（纯 AWT 实现）。原方案 easy-captcha 依赖 javax.servlet-api，与 Boot 4（Jakarta EE 11）冲突，按预案切换 Hutool |
 | JWT | jjwt 0.12.x | Access/Refresh 双 token（HMAC-SHA256），见 §4.2 |
@@ -111,7 +112,7 @@ top.heyqing.aether
 | 0 | 成功 | — |
 | 1xxxx | 通用错误 | 10001 参数错误 / 10002 资源不存在 / 10003 操作频繁 / 10004 数据校验失败 / 10005 文件类型不支持 / 10006 文件大小超限 |
 | 2xxxx | 认证错误 | 20001 未认证 / 20002 token 过期 / 20003 密码错误 / 20004 验证码错误或已过期 / 20005 账号已锁定 / 20006 refresh token 无效 |
-| 3xxxx | 业务错误 | 300xx 文章（30001 文章不存在）301xx 图集 302xx 视频 303xx 音乐 304xx 书籍（30401 分章任务不存在）305xx 存储（30501 分片缺失 30502 上传会话不存在 30503 文件校验失败（合并后 SHA-256 不一致））306xx 公告 307xx 订阅（30701 邮箱格式错误 30702 该 IP 问卷已提交 30703 问卷修改次数已用完）308xx AI（30801 AI 服务不可用 30802 生成失败 30803 当日使用次数已达上限） |
+| 3xxxx | 业务错误 | 300xx 文章（30001 文章不存在 30002 分类不存在 30003 标签不存在 30004 样式不存在）301xx 图集 302xx 视频 303xx 音乐 304xx 书籍（30401 分章任务不存在）305xx 存储（30501 分片缺失 30502 上传会话不存在 30503 文件校验失败（合并后 SHA-256 不一致））306xx 公告 307xx 订阅（30701 邮箱格式错误 30702 该 IP 问卷已提交 30703 问卷修改次数已用完）308xx AI（30801 AI 服务不可用 30802 生成失败 30803 当日使用次数已达上限） |
 | 5xxxx | 系统错误 | 50001 系统内部错误 / 50002 存储服务异常 / 50003 AI 服务异常 / 50004 数据库异常 |
 
 ### 3.3 全局异常处理
@@ -215,7 +216,7 @@ GET /aether/api/v1/storage/file/{fileId}?expires=1785000000&sign=abc123...
 | --- | --- | --- |
 | GET | /articles | 分页列表 `?page&size&categoryId&tagId&keyword&sort=latest\|hot`；keyword 搜索标题/简介/内容（仅文章可搜索） |
 | GET | /articles/hot | 热门文章 `?limit=6-10`（hot_order 排序，不返回创建时间） |
-| GET | /articles/{id} | 文章详情（含样式、分类标签、阅读数自增） |
+| GET | /articles/{id} | 文章详情（含样式、分类标签、阅读数自增）。**SSR 预取支持请求头 `X-Aether-No-Count: 1` 跳过阅读计数**（前端 RSC 渲染请求的 IP 是渲染服务器而非访客，真实计数由浏览器 hydrate 补偿请求完成，前端 2026-08-25 落地） |
 | GET | /articles/{id}/related | 相关文章（同分类优先 + 最新兜底，6 条） |
 | GET | /categories?bizType=article | 分类列表（全站通用接口） |
 | GET | /tags?bizType=article | 标签列表 |
