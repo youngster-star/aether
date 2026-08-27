@@ -13,10 +13,12 @@ import jakarta.persistence.criteria.Predicate;
 import top.heyqing.aether.common.ErrorCode;
 import top.heyqing.aether.common.PageResult;
 import top.heyqing.aether.exception.BusinessException;
+import top.heyqing.aether.model.entity.StorageFile;
 import top.heyqing.aether.model.entity.Video;
 import top.heyqing.aether.model.vo.VideoChapterVO;
 import top.heyqing.aether.model.vo.VideoDetailVO;
 import top.heyqing.aether.model.vo.VideoListVO;
+import top.heyqing.aether.repository.StorageFileRepository;
 import top.heyqing.aether.repository.VideoChapterRepository;
 import top.heyqing.aether.repository.VideoRepository;
 import top.heyqing.aether.service.storage.FileUploadService;
@@ -33,12 +35,14 @@ public class VideoServiceImpl implements VideoService {
 
     private final VideoRepository videoRepository;
     private final VideoChapterRepository videoChapterRepository;
+    private final StorageFileRepository storageFileRepository;
     private final FileUploadService fileUploadService;
 
     public VideoServiceImpl(VideoRepository videoRepository, VideoChapterRepository videoChapterRepository,
-                            FileUploadService fileUploadService) {
+                            StorageFileRepository storageFileRepository, FileUploadService fileUploadService) {
         this.videoRepository = videoRepository;
         this.videoChapterRepository = videoChapterRepository;
+        this.storageFileRepository = storageFileRepository;
         this.fileUploadService = fileUploadService;
     }
 
@@ -70,8 +74,13 @@ public class VideoServiceImpl implements VideoService {
         List<VideoChapterVO> chapters = videoChapterRepository.findByVideoIdOrderBySortAscIdAsc(id).stream()
                 .map(chapter -> new VideoChapterVO(chapter.getId(), chapter.getTitle(), chapter.getTimeOffset()))
                 .toList();
+        // 文件扩展名（播放器 type 判定：mp4/webm）
+        String ext = storageFileRepository.findById(video.getFileId())
+                .map(StorageFile::getExt)
+                .orElse("mp4");
         return new VideoDetailVO(video.getId(), video.getTitle(),
                 video.getCoverFileId() == null ? null : fileUploadService.signUrl(video.getCoverFileId()),
-                video.getIntro(), video.getDuration(), fileUploadService.signUrl(video.getFileId()), chapters);
+                video.getIntro(), video.getDuration(), fileUploadService.signUrl(video.getFileId()), ext,
+                chapters);
     }
 }

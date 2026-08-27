@@ -141,5 +141,7 @@ export interface VideoDetailVO {
   intro: string | null;
   duration: number;
   playUrl: string;
+  /** 文件扩展名（mp4/webm，播放器类型判定用） */
+  ext: string;
   chapters: VideoChapterVO[];
 }

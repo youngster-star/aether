@@ -30,7 +30,8 @@ export default function VideoDetailClient({video}: {video: VideoDetailVO}) {
     const art = new Artplayer({
       container,
       url: video.playUrl,
-      type: "mp4",
+      // 按文件扩展名判定媒体类型（mp4/webm；后端 VO.ext 提供）
+      type: video.ext === "webm" ? "webm" : "mp4",
       autoplay: false,
       poster: video.coverUrl ?? undefined,
       lang: locale === "zh" ? "zh-cn" : "en",
@@ -60,7 +61,7 @@ export default function VideoDetailClient({video}: {video: VideoDetailVO}) {
       art.destroy(false);
       artRef.current = null;
     };
-  }, [video.id, video.playUrl, video.coverUrl, locale]);
+  }, [video.id, video.playUrl, video.coverUrl, video.ext, locale]);
 
   /** 章节点击跳转 */
   const seekTo = (timeOffset: number) => {

@@ -50,8 +50,10 @@ public class StorageCleanServiceImpl implements StorageCleanService {
             try {
                 if (storage.exists(file.getObjectKey())) {
                     storage.delete(file.getObjectKey());
+                    log.info("物理文件删除完成: fileId={}, objectKey={}", fileId, file.getObjectKey());
                 }
-                log.info("物理文件删除完成: fileId={}, objectKey={}", fileId, file.getObjectKey());
+                // 物理文件已不存在：终态（成功删除或从未落盘），行保持 status=0 作为已删除元数据，
+                // 补偿 job 后续扫描仅做 exists 检查（静默 no-op，不产生噪音日志）
             } catch (Exception e) {
                 // 失败不抛：补偿 job 每 10 分钟重试（最多 3 天，BackEnd-Plan §8.3）
                 log.warn("物理文件删除失败，等待补偿 job 重试: fileId={}, objectKey={}, 原因={}",

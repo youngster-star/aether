@@ -2,6 +2,8 @@ package top.heyqing.aether.service.impl.video;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -67,7 +69,18 @@ public class VideoAdminServiceImpl implements VideoAdminService {
         };
         Page<Video> result = videoRepository.findAll(spec,
                 PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "id")));
-        List<VideoAdminVO> records = result.getContent().stream().map(this::toAdminVO).toList();
+        // 章节一次批量取齐（避免每行一次查询的 N+1）
+        Map<Long, List<VideoChapterVO>> chaptersByVideo = result.isEmpty()
+                ? Map.of()
+                : videoChapterRepository.findByVideoIdInOrderByVideoIdAscSortAscIdAsc(
+                                result.getContent().stream().map(Video::getId).toList())
+                        .stream()
+                        .collect(Collectors.groupingBy(VideoChapter::getVideoId,
+                                Collectors.mapping(chapter -> new VideoChapterVO(chapter.getId(),
+                                        chapter.getTitle(), chapter.getTimeOffset()), Collectors.toList())));
+        List<VideoAdminVO> records = result.getContent().stream()
+                .map(video -> toAdminVO(video, chaptersByVideo.getOrDefault(video.getId(), List.of())))
+                .toList();
         return PageResult.of(records, result.getTotalElements(), page, size);
     }
 
@@ -138,9 +151,9 @@ public class VideoAdminServiceImpl implements VideoAdminService {
         video.setTitle(request.title().trim());
         video.setIntro(request.intro());
         video.setCoverFileId(requireValidFileId(request.coverFileId()));
-        video.setFileId(requireVideoFileId(request.fileId()));
+        StorageFile file = requireVideoFile(request.fileId());
+        video.setFileId(file.getId());
         // 时长：请求显式补录优先（探测失败场景），否则取 storage_file 探测值
-        StorageFile file = storageFileRepository.findById(video.getFileId()).orElseThrow();
         video.setDuration(request.duration() != null && request.duration() > 0
                 ? request.duration()
                 : file.getDuration() == null ? 0 : file.getDuration());
@@ -149,13 +162,15 @@ public class VideoAdminServiceImpl implements VideoAdminService {
 
     /**
      * 校验视频文件：存在、状态正常、且为视频类型（mp4/webm，§8.4）
+     *
+     * @return 文件元数据（applyRequest 复用，避免重复查询）
      */
-    private Long requireVideoFileId(Long fileId) {
+    private StorageFile requireVideoFile(Long fileId) {
         StorageFile file = requireValidFile(fileId);
         if (!FileTypeValidator.isVideo(file.getExt())) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "文件不是有效视频（仅支持 mp4/webm）");
         }
-        return fileId;
+        return file;
     }
 
     /**
@@ -185,11 +200,7 @@ public class VideoAdminServiceImpl implements VideoAdminService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.VIDEO_NOT_FOUND));
     }
 
-    private VideoAdminVO toAdminVO(Video video) {
-        List<VideoChapterVO> chapters = videoChapterRepository.findByVideoIdOrderBySortAscIdAsc(video.getId())
-                .stream()
-                .map(chapter -> new VideoChapterVO(chapter.getId(), chapter.getTitle(), chapter.getTimeOffset()))
-                .toList();
+    private VideoAdminVO toAdminVO(Video video, List<VideoChapterVO> chapters) {
         return new VideoAdminVO(video.getId(), video.getTitle(), video.getIntro(),
                 video.getCoverFileId(),
                 video.getCoverFileId() == null ? null : fileUploadService.signUrl(video.getCoverFileId()),

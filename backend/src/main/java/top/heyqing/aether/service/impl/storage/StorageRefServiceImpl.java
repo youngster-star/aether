@@ -62,8 +62,20 @@ public class StorageRefServiceImpl implements StorageRefService {
         if (fileId == null) {
             return;
         }
-        storageRefRepository.deleteByFileIdAndBizTypeAndBizId(fileId, bizType, bizId);
-        markOrphan(fileId);
+        // refCount > 1：同一文件在业务内多处引用（封面又作图集图片等），只减计数不删引用
+        // （BackEnd-Plan §8.3「ref_count > 1 只减计数不删物理」）
+        storageRefRepository.findByFileIdAndBizTypeAndBizId(fileId, bizType, bizId).ifPresentOrElse(ref -> {
+            if (ref.getRefCount() > 1) {
+                ref.setRefCount(ref.getRefCount() - 1);
+                storageRefRepository.save(ref);
+            } else {
+                storageRefRepository.delete(ref);
+                markOrphan(fileId);
+            }
+        }, () -> {
+            // 引用行不存在（脏数据容错）：仍按归零检查，防止孤儿引用累积
+            markOrphan(fileId);
+        });
     }
 
     @Override

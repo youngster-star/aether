@@ -2,6 +2,7 @@ import {getLocale, getTranslations} from "next-intl/server";
 import {notFound} from "next/navigation";
 
 import {apiServerGet} from "@/lib/api/server";
+import {apiGet} from "@/lib/api/client";
 import type {ArticleDetailVO, ArticleListVO, ArticleStyleConfig} from "@/lib/api/types";
 import ArticleContent from "@/components/article/ArticleContent";
 import ArticleDetailClient from "@/components/article/ArticleDetailClient";
@@ -101,10 +102,18 @@ export default async function ArticleDetailPage({params}: {params: Promise<{id: 
           )}
         </header>
 
-        {/* 封面（可选；ProtectedImage 统一防下载：右键/拖拽拦截，签名 URL 访问） */}
+        {/* 封面（可选；ProtectedImage 统一防下载：右键/拖拽拦截 + 签名过期自动重拉） */}
         {article.coverUrl && (
           <div className="mx-auto mt-8 max-h-[480px] w-auto overflow-hidden rounded-md">
-            <ProtectedImage src={article.coverUrl} alt={article.title} className="max-h-[480px]" />
+            <ProtectedImage
+              src={article.coverUrl}
+              alt={article.title}
+              className="max-h-[480px]"
+              refresh={async () =>
+                (await apiGet<ArticleDetailVO>(`/articles/${articleId}`).catch(() => null))
+                  ?.coverUrl ?? null
+              }
+            />
           </div>
         )}
 

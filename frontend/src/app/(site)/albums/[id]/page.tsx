@@ -2,6 +2,7 @@ import {getLocale, getTranslations} from "next-intl/server";
 import {notFound} from "next/navigation";
 
 import {apiServerGet} from "@/lib/api/server";
+import {apiGet} from "@/lib/api/client";
 import type {AlbumDetailVO} from "@/lib/api/types";
 import AlbumDetailClient from "@/components/album/AlbumDetailClient";
 import ProtectedImage from "@/components/media/ProtectedImage";
@@ -63,14 +64,22 @@ export default async function AlbumDetailPage({params}: {params: Promise<{id: st
         {album.coverUrl && (
           <BlurFade className="mt-8 overflow-hidden rounded-md border border-border shadow-aether">
             <div className="max-h-[420px]">
-              <ProtectedImage src={album.coverUrl} alt={album.title} />
+              {/* 签名过期（§9.2）客户端重拉详情换新签名 URL */}
+              <ProtectedImage
+                src={album.coverUrl}
+                alt={album.title}
+                refresh={async () =>
+                  (await apiGet<AlbumDetailVO>(`/albums/${albumId}`).catch(() => null))?.coverUrl ??
+                  null
+                }
+              />
             </div>
           </BlurFade>
         )}
       </header>
 
       {/* 瀑布流 + 预览层 */}
-      <AlbumDetailClient images={album.images} />
+      <AlbumDetailClient albumId={album.id} images={album.images} />
 
       <p className="mt-12 border-t border-border pt-6 text-center text-xs text-muted">
         {locale === "zh" ? "创建于" : "Created"} {album.createTime?.slice(0, 16)}

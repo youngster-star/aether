@@ -240,6 +240,30 @@ class AlbumVideoFlowTest {
     }
 
     @Test
+    @DisplayName("删除一致性：同文件多处引用 refCount 递减保活（封面兼作图片，删图不误删活引用）")
+    void refCountDecrementKeepsLiveReference() {
+        StorageFile shared = upload(renderPng(0xAA8866), "共用图.png");
+        // 封面绑定（refCount=1）
+        Long albumId = albumAdminService.create(
+                new AlbumSaveRequest("共用引用测试", "intro", shared.getId(), 0, 0));
+        // 同一文件再加为图集图片 → 同 (fileId, album, albumId) refCount 递增到 2
+        albumAdminService.addImages(albumId, new AlbumImageBatchRequest(
+                List.of(new AlbumImageBatchRequest.Item(shared.getId(), "兼作图片", null, 0))));
+        assertEquals(1, albumService.detail(albumId).images().size());
+
+        // 删图片记录：refCount 2→1，封面仍活引用 → 文件保持 status=1（§8.3 只减计数不删物理）
+        Long imageId = albumService.detail(albumId).images().get(0).id();
+        albumAdminService.deleteImage(albumId, imageId);
+        assertEquals(1, storageFileRepository.findById(shared.getId()).orElseThrow().getStatus(),
+                "封面仍引用该文件，删图后不应标记待清理");
+
+        // 删除图集：全部引用解绑 → 归零 → status=0
+        albumAdminService.delete(albumId);
+        assertEquals(0, storageFileRepository.findById(shared.getId()).orElseThrow().getStatus());
+        assertTrue(storageRefRepository.findByBizTypeAndBizId("album", albumId).isEmpty());
+    }
+
+    @Test
     @DisplayName("视频管理：CRUD/时长补录/节点整体替换/删除，引用归零文件 status=0")
     void videoAdminCrudAndDeleteConsistency() {
         StorageFile videoFile = upload(minimalMp4(120), "测试视频.mp4");

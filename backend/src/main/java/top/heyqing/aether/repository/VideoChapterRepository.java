@@ -17,6 +17,11 @@ public interface VideoChapterRepository extends JpaRepository<VideoChapter, Long
     List<VideoChapter> findByVideoIdOrderBySortAscIdAsc(Long videoId);
 
     /**
+     * 批量查询视频节点（管理端列表一次取齐，避免 N+1）
+     */
+    List<VideoChapter> findByVideoIdInOrderByVideoIdAscSortAscIdAsc(List<Long> videoIds);
+
+    /**
      * 删除视频全部节点（视频删除时级联清理）
      */
     void deleteByVideoId(Long videoId);

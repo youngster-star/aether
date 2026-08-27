@@ -1,10 +1,11 @@
 "use client";
 
-import {useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {AnimatePresence, motion} from "framer-motion";
 import {useTranslations} from "next-intl";
 
-import type {AlbumImageVO} from "@/lib/api/types";
+import {apiGet} from "@/lib/api/client";
+import type {AlbumDetailVO, AlbumImageVO} from "@/lib/api/types";
 import ProtectedImage from "@/components/media/ProtectedImage";
 
 /**
@@ -12,11 +13,20 @@ import ProtectedImage from "@/components/media/ProtectedImage";
  *
  * <p>瀑布流（columns-2 sm:columns-3）+ pixel-image 语义懒加载（进入视口才
  * 加载，blur 12px → 0 像素过渡）+ 点击预览层（不可下载：右键/拖拽全拦截，
- * 悬浮显示图片信息——大小必显、标题/介绍可选；ESC/遮罩关闭）。</p>
+ * 悬浮显示图片信息——大小必显、标题/介绍可选；ESC/遮罩关闭）。
+ * 签名过期（§9.2）时客户端重拉详情换新签名 URL，并同步刷新预览层当前图。</p>
  */
-export default function AlbumDetailClient({images}: {images: AlbumImageVO[]}) {
+export default function AlbumDetailClient({
+  albumId,
+  images: initialImages,
+}: {
+  albumId: number;
+  images: AlbumImageVO[];
+}) {
   const t = useTranslations("albums");
+  const [images, setImages] = useState<AlbumImageVO[]>(initialImages);
   const [preview, setPreview] = useState<AlbumImageVO | null>(null);
+  const refreshing = useRef(false);
 
   // ESC 关闭预览
   useEffect(() => {
@@ -32,11 +42,39 @@ export default function AlbumDetailClient({images}: {images: AlbumImageVO[]}) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [preview]);
 
+  /**
+   * 签名过期刷新：重拉详情换新签名 URL；预览层同图同步更新
+   */
+  const refreshImages = useCallback(async () => {
+    if (refreshing.current) {
+      return; // 已有刷新进行中（多张图同时过期只触发一次重拉）
+    }
+    refreshing.current = true;
+    try {
+      const detail = await apiGet<AlbumDetailVO>(`/albums/${albumId}`);
+      setImages(detail.images);
+      setPreview((current) =>
+        current === null
+          ? null
+          : detail.images.find((image) => image.id === current.id) ?? null,
+      );
+    } catch {
+      // 后端暂不可用：保留现状，网络恢复后可再次触发
+    } finally {
+      refreshing.current = false;
+    }
+  }, [albumId]);
+
   return (
     <>
       <div className="columns-2 gap-4 sm:columns-3 [&>*]:mb-4">
         {images.map((image) => (
-          <LazyPixelImage key={image.id} image={image} onOpen={() => setPreview(image)} />
+          <LazyPixelImage
+            key={image.id}
+            image={image}
+            onOpen={() => setPreview(image)}
+            onExpire={refreshImages}
+          />
         ))}
       </div>
 
@@ -67,6 +105,7 @@ export default function AlbumDetailClient({images}: {images: AlbumImageVO[]}) {
                 alt={preview.title ?? ""}
                 className="max-h-[75vh]"
                 loading="eager"
+                onExpire={refreshImages}
               />
               {/* 悬浮信息：大小必显，标题/介绍可选（UI-Plan §6.4） */}
               <figcaption className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-3 text-xs text-muted">
@@ -97,7 +136,15 @@ export default function AlbumDetailClient({images}: {images: AlbumImageVO[]}) {
 /**
  * 懒加载图片（pixel-image 语义自实现：进入视口加载，blur 12px→0 像素过渡）
  */
-function LazyPixelImage({image, onOpen}: {image: AlbumImageVO; onOpen: () => void}) {
+function LazyPixelImage({
+  image,
+  onOpen,
+  onExpire,
+}: {
+  image: AlbumImageVO;
+  onOpen: () => void;
+  onExpire: () => void;
+}) {
   const [visible, setVisible] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -135,6 +182,7 @@ function LazyPixelImage({image, onOpen}: {image: AlbumImageVO; onOpen: () => voi
             src={image.url}
             alt={image.title ?? ""}
             onLoaded={() => setLoaded(true)}
+            onExpire={onExpire}
           />
         ) : (
           // 未进入视口：占位色块（保持瀑布流高度）
