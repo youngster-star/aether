@@ -2,6 +2,9 @@ package top.heyqing.aether.service.impl.music;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -79,9 +82,7 @@ public class MusicAdminServiceImpl implements MusicAdminService {
                 PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "id")));
         List<MusicAlbumAdminVO> records = toAlbumAdminVOs(result.getContent());
         return PageResult.of(records, result.getTotalElements(), page, size);
-    }
-
-    @Override
+    }    @Override
     @Transactional
     public Long albumCreate(MusicAlbumSaveRequest request) {
         MusicAlbum album = new MusicAlbum();
@@ -285,12 +286,18 @@ public class MusicAdminServiceImpl implements MusicAdminService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.MUSIC_NOT_FOUND));
     }
 
+    /**
+     * 合集管理 VO 转换（trackCount group by 批量聚合，避免逐行 count 的 N+1）
+     */
     private List<MusicAlbumAdminVO> toAlbumAdminVOs(List<MusicAlbum> albums) {
+        Map<Long, Long> counts = albums.isEmpty() ? Map.of()
+                : musicRepository.countGroupByAlbumId(albums.stream().map(MusicAlbum::getId).toList())
+                        .stream().collect(Collectors.toMap(row -> (Long) row[0], row -> (Long) row[1]));
         return albums.stream().map(album -> new MusicAlbumAdminVO(album.getId(), album.getTitle(),
                 album.getCoverFileId(),
                 album.getCoverFileId() == null ? null : fileUploadService.signUrl(album.getCoverFileId()),
                 album.getIntro(), album.getType(), album.getCertification(), album.getIsRecommend(),
-                musicRepository.countByAlbumId(album.getId()),
+                counts.getOrDefault(album.getId(), 0L),
                 album.getCreateTime(), album.getUpdateTime())).toList();
     }
 
