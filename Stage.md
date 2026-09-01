@@ -52,6 +52,7 @@
 | 2026-08-27 | b2eefe5..ed63e37 | 阶段 3 图集+视频：后端全链路（album/album_image/video/video_chapter 表 + 公开/管理 API）+ 签名 URL Range 206 + 图片 EXIF 抹除（commons-imaging）+ 时长探测（ffprobe + MP4 内置回退）+ storage_ref 删除一致性（归零清理/补偿 job/uk_md5 复活/refCount 递减保活）+ 前端图集/视频 4 页 + ArtPlayer（webm 类型判定）+ 防下载预览层 + ProtectedImage 统一接入（签名过期自动重拉）+ 主页推荐图集区块 + seed 数据与 8 项集成测试（33/33 PASS，含门禁反馈修复）；BackEnd-Plan §1/§4.5/§5.2/§6.2/§8.2 同步 |
 | 2026-09-01 | 1f397c9..79f9f35 | 阶段 3 视觉验收通过 + UI v2.0 双主题色调系统（UI-Plan §2.7）+ 全站微交互动画（§2.8）+ 新组件 AetherRing/BackToTop/SideTab + 演示测试数据（seed-demo-data + download-demo-media）+ Article 长文列 MEDIUMTEXT 对齐 |
 | 2026-09-01 | 990a5ab..c733544 | 阶段 4 音乐：后端全链路（合集/单曲 CRUD + 公开接口 + 特效生成 Schema 校验 + MP3 内置时长回退 + 错误码 30302 + MusicFlowTest 39/39）+ 前端合集页/详情页（MusicVisualizer 引擎 + 沙箱层 + 全局播放单例 + i18n）；BackEnd-Plan §3.2/§5.2/§7.3/§8.2 与 UI-Plan §6.6 同步 |
+| 2026-09-01 | 4e796d1..782f5af | 阶段 4 联调修复：本地启动命令修正（spring-boot.run.profiles + dev,local 后置优先——fork JVM 不继承系统属性致 JwtService fail-fast）+ 合集详情页补齐（UI-Plan §4.1 music/albums/[id] 漏实现致 404）+ MusicVisualizer 位图回传合成（transferControlToOffscreen 不可逆致 StrictMode 重挂载 getContext 异常）；联调环境实测通过 |
 
 ## 2 开发阶段
 
