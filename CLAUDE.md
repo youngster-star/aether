@@ -27,6 +27,7 @@
 ## 环境要点
 
 - 后端测试/本地运行用 dev profile（H2 内存库）：`mvn -Dspring.profiles.active=dev`
+- 本地联调（真实 MySQL）：`cd backend && mvn spring-boot:run "-Dspring-boot.run.profiles=dev,local"`——注意 spring-boot:run 默认 fork 独立 JVM，`-Dspring-boot.profiles.active` 不传入应用 JVM，必须用插件参数 `spring-boot.run.profiles`；且 profile 文件后置优先（local 覆盖 dev 数据源必须排后：`dev,local`）
 - Docker 环境项目末期统一安装（当前不要求 docker）
 - Next.js 16 存在 breaking changes：写前端代码前先读 `frontend/node_modules/next/dist/docs/` 对应文档
 - 本机网络封锁 `github.com:22`：已配置 `~/.ssh/config` 走 `ssh.github.com:443`（SSH over 443），push 无需额外操作

@@ -59,7 +59,9 @@ bash scripts/setup-hooks.sh
 docker compose -f deploy/docker-compose.dev.yml up -d
 
 # 2. 启动后端（context-path=/aether/api，Swagger 见 /aether/api/swagger-ui.html）
-cd backend && mvn spring-boot:run
+#    注意：spring-boot:run 默认 fork 独立 JVM，系统属性不继承——必须用插件参数
+#    spring-boot.run.profiles；且后置 profile 优先（local 覆盖 dev 数据源 → 顺序 dev,local）
+cd backend && mvn spring-boot:run "-Dspring-boot.run.profiles=dev,local"
 
 # 3. 启动前端（basePath=/aether，开发地址 http://localhost:3000/aether）
 cd frontend && npm install && npm run dev
