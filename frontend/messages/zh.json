@@ -45,8 +45,10 @@
     "filterByTag": "按标签筛选",
     "breadcrumbHome": "首页",
     "breadcrumbArticles": "文章",
-    "related": "其他文章",
+    "related": "查看更多文章",
+    "relatedClose": "收起",
     "relatedTitle": "其他文章",
+    "relatedLead": "或许你还想读：",
     "articleStyleDefault": "默认样式",
     "notFound": "文章不存在或未发布"
   },

@@ -21,7 +21,11 @@ export class ApiError extends Error {
 /**
  * GET 请求（自动拼接 query 参数并解包 Result）
  */
-export async function apiGet<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+export async function apiGet<T>(
+  path: string,
+  params?: Record<string, string | number | undefined>,
+  options?: {noCount?: boolean},
+): Promise<T> {
   const url = new URL(`${API_BASE}${path}`, window.location.origin);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -30,7 +34,11 @@ export async function apiGet<T>(path: string, params?: Record<string, string | n
       }
     });
   }
-  const response = await fetch(url.toString(), {cache: "no-store"});
+  const response = await fetch(url.toString(), {
+    cache: "no-store",
+    // 封面签名过期重拉等非阅读场景跳过阅读计数（与 apiServerGet 的 noCount 语义一致）
+    headers: options?.noCount ? {"X-Aether-No-Count": "1"} : undefined,
+  });
   return unwrap<T>(response);
 }
 

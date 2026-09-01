@@ -2,7 +2,6 @@ import {getLocale, getTranslations} from "next-intl/server";
 import {notFound} from "next/navigation";
 
 import {apiServerGet} from "@/lib/api/server";
-import {apiGet} from "@/lib/api/client";
 import type {AlbumDetailVO} from "@/lib/api/types";
 import AlbumDetailClient from "@/components/album/AlbumDetailClient";
 import ProtectedImage from "@/components/media/ProtectedImage";
@@ -29,18 +28,18 @@ export default async function AlbumDetailPage({params}: {params: Promise<{id: st
   }
 
   return (
-    <div className="mx-auto mt-10 max-w-6xl px-4">
-      {/* 面包屑：首页 / 图集 / 标题（UI-Plan §6.4） */}
+    <div className="mx-auto mt-10 max-w-6xl px-4" data-module="album">
+      {/* 面包屑：首页 / 图集 / 标题（UI-Plan §6.4；A6 下划线展开） */}
       <nav aria-label="breadcrumb" className="mb-8 text-xs text-muted">
         <ol className="flex flex-wrap items-center gap-2">
           <li>
-            <a href="/aether/" className="hover:text-accent">
+            <a href="/aether/" className="crumb-link">
               {locale === "zh" ? "首页" : "Home"}
             </a>
           </li>
           <li aria-hidden>·</li>
           <li>
-            <a href="/aether/albums" className="hover:text-accent">
+            <a href="/aether/albums" className="crumb-link">
               {t("breadcrumbAlbums")}
             </a>
           </li>
@@ -64,15 +63,13 @@ export default async function AlbumDetailPage({params}: {params: Promise<{id: st
         {album.coverUrl && (
           <BlurFade className="mt-8 overflow-hidden rounded-md border border-border shadow-aether">
             <div className="max-h-[420px]">
-              {/* 签名过期（§9.2）客户端重拉详情换新签名 URL */}
-              <ProtectedImage
-                src={album.coverUrl}
-                alt={album.title}
-                refresh={async () =>
-                  (await apiGet<AlbumDetailVO>(`/albums/${albumId}`).catch(() => null))?.coverUrl ??
-                  null
-                }
-              />
+            {/* 签名过期（§9.2）经 ProtectedImage 内部 refreshPath 重拉详情换新签名 URL
+                （server 组件只传字符串，规避 RSC 函数序列化限制） */}
+            <ProtectedImage
+              src={album.coverUrl}
+              alt={album.title}
+              refreshPath={`/albums/${albumId}`}
+            />
             </div>
           </BlurFade>
         )}

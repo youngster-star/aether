@@ -16,11 +16,14 @@ export default function AlbumCard({album}: {album: AlbumListVO}) {
   const t = useTranslations("albums");
   return (
     <Link href={`/albums/${album.id}`} className="block">
-      <article className="hover-card group relative h-full overflow-hidden rounded-lg border border-border shadow-aether">
-        {/* 封面区（4:3，lens 放大语义：hover scale 1.06） */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-accent/10">
+      <article
+        data-module="album"
+        className="hover-card group relative h-full overflow-hidden rounded-lg border border-border shadow-aether"
+      >
+        {/* 封面区（4:3，lens 放大语义：.card-img hover scale 1.04 + 分区色薄纱罩） */}
+        <div className="card-img relative aspect-[4/3] bg-accent/10">
           {album.coverUrl && (
-            <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.06]">
+            <div className="h-full w-full">
               <ProtectedImage src={album.coverUrl} alt={album.title} />
             </div>
           )}

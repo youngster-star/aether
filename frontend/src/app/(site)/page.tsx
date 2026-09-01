@@ -28,9 +28,9 @@ export default async function HomePage() {
     <>
       <Hero locale={locale} />
 
-      {/* 热门文章（§6.1-4：卡片网格 + hover 反色 + 排名数字 + 不显示创建时间） */}
+      {/* 热门文章（§6.1-4：卡片网格 + hover T2 整卡反色 + 排名数字 + 不显示创建时间） */}
       {hotArticles.length > 0 && (
-        <section className="mx-auto mt-16 max-w-6xl px-4">
+        <section className="mx-auto mt-16 max-w-6xl px-4" data-module="article">
           <BlurFade>
             <h2 className="section-title text-2xl">{locale === "zh" ? "热门文章" : "Hot Articles"}</h2>
           </BlurFade>
@@ -46,7 +46,7 @@ export default async function HomePage() {
 
       {/* 最新文章（阶段 2 主页补充区块） */}
       {latestArticles.records.length > 0 && (
-        <section className="mx-auto mt-16 max-w-6xl px-4">
+        <section className="mx-auto mt-16 max-w-6xl px-4" data-module="article">
           <BlurFade>
             <div className="flex items-baseline justify-between">
               <h2 className="section-title text-2xl">
@@ -54,7 +54,7 @@ export default async function HomePage() {
               </h2>
               <Link
                 href="/articles"
-                className="text-sm text-accent underline-offset-4 hover:underline"
+                className="crumb-link text-sm text-accent"
               >
                 {locale === "zh" ? "查看全部 →" : "View all →"}
               </Link>
@@ -72,7 +72,7 @@ export default async function HomePage() {
 
       {/* 推荐图集（阶段 3 新增区块，§6.1-5：GET /albums/recommend，limit 4） */}
       {recommendedAlbums.length > 0 && (
-        <section className="mx-auto mt-16 max-w-6xl px-4">
+        <section className="mx-auto mt-16 max-w-6xl px-4" data-module="album">
           <BlurFade>
             <div className="flex items-baseline justify-between">
               <h2 className="section-title text-2xl">
@@ -80,7 +80,7 @@ export default async function HomePage() {
               </h2>
               <Link
                 href="/albums"
-                className="text-sm text-accent underline-offset-4 hover:underline"
+                className="crumb-link text-sm text-accent"
               >
                 {locale === "zh" ? "查看全部 →" : "View all →"}
               </Link>

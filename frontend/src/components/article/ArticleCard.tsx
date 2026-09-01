@@ -13,7 +13,10 @@ export default function ArticleCard({article, rank}: {article: ArticleListVO; ra
   const t = useTranslations();
   return (
     <Link href={`/articles/${article.id}`} className="block">
-      <article className="hover-card group relative h-full overflow-hidden rounded-lg border border-border p-6 shadow-aether">
+      <article
+        data-module="article"
+        className="hover-card group relative h-full overflow-hidden rounded-lg border border-border p-6 shadow-aether"
+      >
         {/* 热门排名数字（主页热门区块，kinetic-text 语义以字重渐变呈现） */}
         {rank !== undefined && (
           <span
@@ -36,7 +39,7 @@ export default function ArticleCard({article, rank}: {article: ArticleListVO; ra
           {article.categories.map((category) => (
             <span
               key={category.id}
-              className="rounded-pill border border-accent-2 px-2 py-0.5 text-xs text-accent-2"
+              className="chip rounded-pill border border-accent-2 px-2 py-0.5 text-xs text-accent-2"
             >
               {category.name}
             </span>

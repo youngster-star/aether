@@ -25,12 +25,16 @@ export default function Hero({locale}: {locale: string}) {
 
   return (
     <section className="mx-auto mt-16 max-w-6xl px-4 text-center">
-      {/* 大字标（kinetic-text 语义：hover 时逐字字重动画简化为整体缩放） */}
+      {/* 大字标（kinetic-text 语义：hover 时逐字字重动画简化为整体缩放）
+          取景框装饰：四角 L 形角标（.frame-corners 伪元素 + 补角 span）+ 虚线描边（§2.1 v2.0） */}
       <div
-        className="relative inline-block cursor-default"
+        className="frame-corners frame-dashed relative inline-block cursor-default px-10 py-8 sm:px-14"
         onMouseEnter={() => setHovering(true)}
         onMouseLeave={() => setHovering(false)}
       >
+        {/* 右上/左下补角（左上/右下由 .frame-corners 伪元素绘制） */}
+        <span aria-hidden className="frame-corner-tr" />
+        <span aria-hidden className="frame-corner-bl" />
         <h1
           aria-label="AETHER"
           className="font-display text-7xl font-black tracking-[0.18em] sm:text-8xl lg:text-9xl"

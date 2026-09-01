@@ -10,11 +10,14 @@ import ProtectedImage from "@/components/media/ProtectedImage";
 export default function VideoCard({video}: {video: VideoListVO}) {
   return (
     <Link href={`/videos/${video.id}`} className="block">
-      <article className="hover-card group relative h-full overflow-hidden rounded-lg border border-border shadow-aether">
-        {/* 封面（16:9）+ 时长角标 */}
-        <div className="relative aspect-video overflow-hidden bg-accent/10">
+      <article
+        data-module="article"
+        className="hover-card group relative h-full overflow-hidden rounded-lg border border-border shadow-aether"
+      >
+        {/* 封面（16:9）+ 时长角标（.card-img hover scale + 分区色薄纱罩） */}
+        <div className="card-img relative aspect-video bg-accent/10">
           {video.coverUrl && (
-            <div className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.05]">
+            <div className="h-full w-full">
               <ProtectedImage src={video.coverUrl} alt={video.title} />
             </div>
           )}

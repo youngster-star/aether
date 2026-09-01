@@ -2,7 +2,6 @@ import {getLocale, getTranslations} from "next-intl/server";
 import {notFound} from "next/navigation";
 
 import {apiServerGet} from "@/lib/api/server";
-import {apiGet} from "@/lib/api/client";
 import type {ArticleDetailVO, ArticleListVO, ArticleStyleConfig} from "@/lib/api/types";
 import ArticleContent from "@/components/article/ArticleContent";
 import ArticleDetailClient from "@/components/article/ArticleDetailClient";
@@ -46,21 +45,21 @@ export default async function ArticleDetailPage({params}: {params: Promise<{id: 
   }
 
   return (
-    <div className="relative">
+    <div className="relative" data-module="article">
       <StickyTitleBar title={article.title} />
 
       <div className="mx-auto mt-10 max-w-6xl px-4">
-        {/* 面包屑：首页 / 文章 / 标题（UI-Plan §5） */}
+        {/* 面包屑：首页 / 文章 / 标题（UI-Plan §5；A6 下划线展开） */}
         <nav aria-label="breadcrumb" className="mb-8 text-xs text-muted">
           <ol className="flex flex-wrap items-center gap-2">
             <li>
-              <a href="/aether/" className="hover:text-accent">
+              <a href="/aether/" className="crumb-link">
                 {t("breadcrumbHome")}
               </a>
             </li>
             <li aria-hidden>·</li>
             <li>
-              <a href="/aether/articles" className="hover:text-accent">
+              <a href="/aether/articles" className="crumb-link">
                 {t("breadcrumbArticles")}
               </a>
             </li>
@@ -102,17 +101,16 @@ export default async function ArticleDetailPage({params}: {params: Promise<{id: 
           )}
         </header>
 
-        {/* 封面（可选；ProtectedImage 统一防下载：右键/拖拽拦截 + 签名过期自动重拉） */}
+        {/* 封面（可选；ProtectedImage 统一防下载：右键/拖拽拦截 + 签名过期经
+            refreshPath 内部重拉换新签名 URL，noCount 避免阅读计数重复累计） */}
         {article.coverUrl && (
           <div className="mx-auto mt-8 max-h-[480px] w-auto overflow-hidden rounded-md">
             <ProtectedImage
               src={article.coverUrl}
               alt={article.title}
               className="max-h-[480px]"
-              refresh={async () =>
-                (await apiGet<ArticleDetailVO>(`/articles/${articleId}`).catch(() => null))
-                  ?.coverUrl ?? null
-              }
+              refreshPath={`/articles/${articleId}`}
+              noCount
             />
           </div>
         )}

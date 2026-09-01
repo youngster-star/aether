@@ -26,18 +26,18 @@ export default async function VideoDetailPage({params}: {params: Promise<{id: st
   }
 
   return (
-    <div className="mx-auto mt-10 max-w-6xl px-4">
-      {/* 面包屑：首页 / 视频 / 标题 */}
+    <div className="mx-auto mt-10 max-w-6xl px-4" data-module="article">
+      {/* 面包屑：首页 / 视频 / 标题（A6 下划线展开） */}
       <nav aria-label="breadcrumb" className="mb-8 text-xs text-muted">
         <ol className="flex flex-wrap items-center gap-2">
           <li>
-            <a href="/aether/" className="hover:text-accent">
+            <a href="/aether/" className="crumb-link">
               {locale === "zh" ? "首页" : "Home"}
             </a>
           </li>
           <li aria-hidden>·</li>
           <li>
-            <a href="/aether/videos" className="hover:text-accent">
+            <a href="/aether/videos" className="crumb-link">
               {t("breadcrumbVideos")}
             </a>
           </li>

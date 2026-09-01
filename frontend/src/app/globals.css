@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
-/* ===== Aether 设计系统 · 方案 D 羊皮卷（UI-Plan §2.2，tokens 已定稿） ===== */
+/* ===== Aether 设计系统 · 方案 D 羊皮卷（UI-Plan §2.2，tokens 已定稿；v2.0 补分区色） ===== */
 
 :root {
   /* 字体（UI-Plan §2.3 全衬线；系统字体栈直用，next/font 优化见 §12.3 遗留问题 2） */
   --font-display: "Noto Serif SC", "Source Serif 4", Georgia, "Songti SC", "STSong", "SimSun", serif;
   --font-body: "Noto Serif SC", "Source Serif 4", Georgia, "Songti SC", "STSong", "SimSun", serif;
   --font-jetbrains: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  /* 全站统一缓动（UI-Plan §2.5/§2.8） */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* 中性 */
   --background: #F3EAD8;   /* 羊皮纸（页面底） */
   --foreground: #2B2118;   /* 墨褐（文字） */
@@ -17,10 +19,19 @@
   --primary: #2B2118;      /* 墨褐（按钮/链接主色，hover 反色） */
   --accent: #8C5B2D;       /* 赭石（强调/悬停反色/热门排名数字） */
   --accent-2: #4F6D5A;     /* 铜绿（副强调：公告 tag/认证/装饰线） */
-  --highlight: #E8C98A;    /* 书签金（::selection 高亮/荧光标注） */
+  --highlight: #E8C98A;    /* 书签金（荧光标注） */
   /* 功能色 */
   --success: #4A7A5A;
   --danger: #B0442E;
+  /* v2.0 分区色（双主题色调系统，UI-Plan §2.7）：hover 底色 + 反色文字 */
+  --tint-article:  #8C5B2D;  --tint-article-on:  #F3EAD8;  /* 文章：赭石 */
+  --tint-book:     #4F6D5A;  --tint-book-on:     #F3EAD8;  /* 书籍：铜绿 */
+  --tint-album:    #7A3B2E;  --tint-album-on:    #F3EAD8;  /* 图集：旧书布面酒红 */
+  --tint-music:    #3E5C76;  --tint-music-on:    #F3EAD8;  /* 音乐：钢笔墨水蓝 */
+  --tint-announce: #B0442E;  --tint-announce-on: #F3EAD8;  /* 公告：印章朱 */
+  /* 当前生效分区色（默认=文章，由 data-module 切换） */
+  --tint: var(--tint-article);
+  --tint-on: var(--tint-article-on);
   /* 圆角（克制：3 小元素 / 6 图片 / 8 卡片 / 12 大分区 / 999 pill） */
   --radius-sm: 3px;
   --radius-md: 6px;
@@ -44,8 +55,23 @@
   --highlight: #B99A5B;
   --success: #6E8F79;
   --danger: #D9765C;
+  /* v2.0 分区色（dark 组：提亮一档保证对比度） */
+  --tint-article:  #C68B4E;  --tint-article-on:  #1E1812;
+  --tint-book:     #6E8F79;  --tint-book-on:     #1E1812;
+  --tint-album:    #A85A48;  --tint-album-on:    #F3EAD8;
+  --tint-music:    #5E7E9B;  --tint-music-on:    #F3EAD8;
+  --tint-announce: #D9765C;  --tint-announce-on: #1E1812;
+  --tint: var(--tint-article);
+  --tint-on: var(--tint-article-on);
   --shadow: 0 2px 14px rgba(0, 0, 0, .5);
 }
+
+/* v2.0 §2.7.2：分区色经模块容器 data-module 注入（--tint/--tint-on 就地切换） */
+[data-module="article"]   { --tint: var(--tint-article);   --tint-on: var(--tint-article-on); }
+[data-module="book"]      { --tint: var(--tint-book);      --tint-on: var(--tint-book-on); }
+[data-module="album"]     { --tint: var(--tint-album);     --tint-on: var(--tint-album-on); }
+[data-module="music"]     { --tint: var(--tint-music);     --tint-on: var(--tint-music-on); }
+[data-module="announce"]  { --tint: var(--tint-announce);  --tint-on: var(--tint-announce-on); }
 
 /* Tailwind 4：token 映射为工具类（bg-background / text-foreground / border-border / bg-accent …） */
 @theme inline {
@@ -60,6 +86,8 @@
   --color-highlight: var(--highlight);
   --color-success: var(--success);
   --color-danger: var(--danger);
+  --color-tint: var(--tint);
+  --color-tint-on: var(--tint-on);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -96,29 +124,71 @@ body {
   line-height: 1.9;
 }
 
-/* 全站选择效果（UI-Plan §2.6，article-03 参考） */
+/* ===== 全局样式规则（UI-Plan §2.6） ===== */
+
+/* 全站选择效果：随当前分区色换色（v2.0，article-03 参考） */
 ::selection {
-  background: var(--accent);
-  color: var(--background);
+  background: var(--tint);
+  color: var(--tint-on);
 }
 
-/* 卡片悬停反色（UI-Plan §2.6 核心交互） */
+/* ===== v2.0 §2.7.4：T2 整卡反色基类（全站 HoverCard 统一继承） ===== */
 .hover-card {
   background: var(--card);
   color: var(--foreground);
-  transition: background-color 300ms cubic-bezier(0.22, 1, 0.36, 1),
-              color 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background-color 300ms var(--ease),
+              color 300ms var(--ease),
+              box-shadow 300ms var(--ease);
+}
+/* 卡内图片容器：hover 放大 + 分区色薄纱罩（.card-img 包裹层） */
+.hover-card .card-img {
+  position: relative;
+  overflow: hidden;
+}
+.hover-card .card-img img {
+  transition: transform 500ms var(--ease);
 }
 .hover-card:hover {
-  background: var(--accent);
-  color: var(--background);
+  background: var(--tint);                            /* 整卡底色→分区色 */
+  color: var(--tint-on);                              /* 全卡文字反色 */
+  box-shadow: 0 6px 24px rgba(43, 33, 24, .18);
 }
+.hover-card:hover .card-img img {
+  transform: scale(1.04);
+}
+.hover-card:hover .card-img::after {                  /* 图片分区色薄纱罩 */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tint);
+  opacity: .18;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+/* 卡内次级文字（text-muted 自身带颜色，需显式继承反色并降透明度） */
 .hover-card:hover .hover-card-dim {
-  color: var(--background);
+  color: inherit;
   opacity: .75;
 }
+/* 独立描边/图标元素 hover 时同步染色 */
+.hover-card:hover .tag,
+.hover-card:hover .icon {
+  color: var(--tint-on);
+  border-color: var(--tint-on);
+}
+/* 卡内分类 chip：hover 上跳 2px（B3） */
+.hover-card .chip {
+  transition: transform 150ms var(--ease), background-color 150ms var(--ease),
+              color 150ms var(--ease), border-color 150ms var(--ease);
+}
+.hover-card:hover .chip {
+  transform: translateY(-2px);
+  background: var(--tint-on);
+  color: var(--tint);
+  border-color: var(--tint-on);
+}
 
-/* 区块标题双线饰线（UI-Plan §2.4） */
+/* 区块标题双线饰线（UI-Plan §2.4）+ v2.0 F5 饰线自中心向两侧展开动画 */
 .section-title {
   display: inline-flex;
   align-items: center;
@@ -133,20 +203,200 @@ body {
   height: 1px;
   background: var(--border);
   flex: 0 0 32px;
+  transform-origin: center;
+  animation: rule-bloom 600ms var(--ease) both;
 }
 .section-title::after {
   border-bottom: 2px solid var(--accent);
   flex: 0 0 48px;
   height: 0;
 }
-
-/* 竖排文字（RELATED ARTICLES 侧边栏按钮，UI-Plan §8.2） */
-.vertical-text {
-  writing-mode: vertical-rl;
-  letter-spacing: .35em;
+@keyframes rule-bloom {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
 }
 
-/* 全站尊重 prefers-reduced-motion（UI-Plan §2.5） */
+/* ===== v2.0 §2.1 装饰语言：取景框角标 + 虚线描边框（Hero/板块容器，参考站截图） ===== */
+.frame-corners {
+  position: relative;
+}
+/* 四角 L 形角线：两个伪元素各画对角两组（border 实现） */
+.frame-corners::before,
+.frame-corners::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  border: 0 solid var(--accent);
+  z-index: 2;
+}
+.frame-corners::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.frame-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+/* 另外两个角（右上/左下）用子元素 .frame-corner-bl/.frame-corner-tr 或 outline 补充：
+   为免结构侵入，统一由 .frame-corners 的容器再加一层 span.frame-corners-x（见组件） */
+.frame-corner-tr,
+.frame-corner-bl {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  border: 0 solid var(--accent);
+  z-index: 2;
+}
+.frame-corner-tr {
+  top: -1px;
+  right: -1px;
+  border-top-width: 2px;
+  border-right-width: 2px;
+}
+.frame-corner-bl {
+  bottom: -1px;
+  left: -1px;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+}
+.frame-dashed {
+  border: 1px dashed var(--border);
+}
+
+/* ===== v2.0 §2.8 C3：竖排侧边跳动按钮（文字非正放，hover 逐字接力跳动） ===== */
+.side-tab {
+  writing-mode: vertical-rl;       /* 文字竖排——非正放 */
+  text-orientation: mixed;         /* 中文直立，拉丁字母顺时针旋转 90° */
+  letter-spacing: .35em;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 150ms var(--ease);
+}
+.side-tab::after {                 /* 伴随细线：hover 伸长 */
+  content: "";
+  display: block;
+  width: 1px;
+  height: 24px;
+  margin: 12px auto 0;
+  background: currentColor;
+  transition: height 300ms var(--ease);
+}
+.side-tab:hover {
+  color: var(--tint);
+}
+.side-tab:hover::after {
+  height: 48px;
+}
+.side-tab .ch {
+  display: inline-block;
+}
+.side-tab:hover .ch {
+  animation: hop .5s var(--ease) both;
+  animation-delay: calc(var(--i) * 45ms);   /* 逐字接力跳动 */
+}
+@keyframes hop {
+  0%, 100% { transform: translateY(0); }
+  35%      { transform: translateY(-6px); }
+  70%      { transform: translateY(2px); }
+}
+
+/* ===== v2.0 §2.8 A6/T1：行内链接下划线自左展开 + 染色（面包屑/查看全部/分享行） ===== */
+.crumb-link {
+  position: relative;
+  transition: color 150ms var(--ease);
+}
+.crumb-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: var(--tint);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 150ms var(--ease);
+}
+.crumb-link:hover {
+  color: var(--tint);
+}
+.crumb-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* 正文内链 hover：T1 染色（C7，正文为后端 HTML，容器级注入） */
+.article-body a {
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 3px;
+  transition: color 150ms var(--ease), text-decoration-color 150ms var(--ease);
+}
+.article-body a:hover {
+  color: var(--tint);
+  text-decoration-color: var(--tint);
+}
+
+/* ===== v2.0 §2.8 A1：汉堡按钮中杆 hover 伸长 ===== */
+.burger-bar {
+  transition: width 150ms var(--ease);
+}
+button:hover .burger-bar-mid {
+  width: 100%;
+}
+
+/* ===== v2.0 §2.8 A5：字标 LOGO hover 光环内环旋转 ===== */
+.aether-wordmark .halo-inner {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 600ms var(--ease);
+}
+.aether-wordmark:hover .halo-inner {
+  transform: rotate(360deg);
+}
+
+/* 导航条目 hover：左移 + 前缀"❧"淡入（A4） */
+.menu-item {
+  transition: padding-left 150ms var(--ease), color 150ms var(--ease);
+}
+.menu-item::before {
+  content: "❧";
+  display: inline-block;
+  margin-right: 6px;
+  color: var(--tint);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 150ms var(--ease), transform 150ms var(--ease);
+}
+.menu-item:hover {
+  padding-left: 10px;
+  color: var(--tint);
+}
+.menu-item:hover::before {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 骨架屏 shimmer（B9，预留加载态使用） */
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--card) 25%, var(--highlight) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* 全站尊重 prefers-reduced-motion（UI-Plan §2.5/§2.8：动画直接呈现最终状态） */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -154,5 +404,9 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  /* 跳动类 keyframes 降级为仅变色 */
+  .side-tab:hover .ch {
+    animation: none;
   }
 }

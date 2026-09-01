@@ -20,12 +20,12 @@ export default async function VideosPage() {
   }).catch(() => null);
 
   return (
-    <div className="mx-auto mt-10 max-w-6xl px-4">
-      {/* 面包屑：首页 / 视频 */}
+    <div className="mx-auto mt-10 max-w-6xl px-4" data-module="article">
+      {/* 面包屑：首页 / 视频（A6 下划线展开） */}
       <nav aria-label="breadcrumb" className="mb-6 text-xs text-muted">
         <ol className="flex items-center gap-2">
           <li>
-            <a href="/aether/" className="hover:text-accent">
+            <a href="/aether/" className="crumb-link">
               {locale === "zh" ? "首页" : "Home"}
             </a>
           </li>

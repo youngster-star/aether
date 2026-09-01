@@ -7,6 +7,7 @@ import {useTranslations} from "next-intl";
 import {apiGet} from "@/lib/api/client";
 import type {AlbumDetailVO, AlbumImageVO} from "@/lib/api/types";
 import ProtectedImage from "@/components/media/ProtectedImage";
+import BlurFade from "@/components/ui/BlurFade";
 
 /**
  * 图集详情交互层（UI-Plan §6.4）
@@ -134,7 +135,10 @@ export default function AlbumDetailClient({
 }
 
 /**
- * 懒加载图片（pixel-image 语义自实现：进入视口加载，blur 12px→0 像素过渡）
+ * 懒加载图片（magicui 语义自实现）：
+ * pixel-image——进入视口加载 + blur 12px→0 像素过渡；
+ * blur-fade——卡片入场模糊淡入；
+ * lens——hover 圆形放大镜跟随鼠标（zoomFactor 2，§6.4）。
  */
 function LazyPixelImage({
   image,
@@ -147,6 +151,8 @@ function LazyPixelImage({
 }) {
   const [visible, setVisible] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // lens 放大镜位置（0~1 相对坐标），null = 未 hover
+  const [lens, setLens] = useState<{x: number; y: number} | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -167,42 +173,75 @@ function LazyPixelImage({
     return () => observer.disconnect();
   }, []);
 
+  // lens：记录鼠标在图内的相对位置，圆形放大区按百分比取景（2 倍放大）
+  const handleMove = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setLens({
+      x: Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1),
+      y: Math.min(Math.max((event.clientY - rect.top) / rect.height, 0), 1),
+    });
+  };
+  const prevent = (event: React.SyntheticEvent) => event.preventDefault();
+
   return (
-    <div ref={ref} className="break-inside-avoid">
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label={image.title ?? ""}
-        className="group relative block w-full overflow-hidden rounded-md border border-border
-                   bg-accent/10 transition-colors hover:border-accent"
-        style={{aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : "4 / 3"}}
-      >
-        {visible ? (
-          <ProtectedImage
-            src={image.url}
-            alt={image.title ?? ""}
-            onLoaded={() => setLoaded(true)}
-            onExpire={onExpire}
+    <BlurFade>
+      <div ref={ref} className="break-inside-avoid">
+        <button
+          type="button"
+          onClick={onOpen}
+          onMouseMove={handleMove}
+          onMouseLeave={() => setLens(null)}
+          onContextMenu={prevent}
+          onDragStart={prevent}
+          aria-label={image.title ?? ""}
+          className="group relative block w-full overflow-hidden rounded-md border border-border
+                     bg-accent/10 transition-colors hover:border-accent"
+          style={{aspectRatio: image.width && image.height ? `${image.width} / ${image.height}` : "4 / 3"}}
+        >
+          {visible ? (
+            <ProtectedImage
+              src={image.url}
+              alt={image.title ?? ""}
+              onLoaded={() => setLoaded(true)}
+              onExpire={onExpire}
+            />
+          ) : (
+            // 未进入视口：占位色块（保持瀑布流高度）
+            <div className="absolute inset-0" />
+          )}
+          {/* 像素过渡：blur(12px) → 0；未加载完成前显示底色 */}
+          <div
+            aria-hidden
+            className={`pointer-events-none absolute inset-0 bg-accent/10 transition-[opacity,filter]
+                        duration-500 ${loaded ? "opacity-0 blur-0" : "opacity-100 blur-xl"}`}
           />
-        ) : (
-          // 未进入视口：占位色块（保持瀑布流高度）
-          <div className="absolute inset-0" />
-        )}
-        {/* 像素过渡：blur(12px) → 0；未加载完成前显示底色 */}
-        <div
-          aria-hidden
-          className={`pointer-events-none absolute inset-0 bg-accent/10 transition-[opacity,filter]
-                      duration-500 ${loaded ? "opacity-0 blur-0" : "opacity-100 blur-xl"}`}
-        />
-        {/* hover 遮罩提示 */}
-        <span className="pointer-events-none absolute inset-0 flex items-end justify-center pb-3 text-xs
-                         text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <span className="rounded-pill bg-black/50 px-3 py-1 backdrop-blur-sm">
-            {image.title ?? "⤢"}
+          {/* lens 放大镜：圆形取景区跟随鼠标，签名 URL 作 2 倍背景图 */}
+          {lens !== null && visible && loaded && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute h-40 w-40 rounded-full border-2 border-background
+                         shadow-aether"
+              style={{
+                left: `calc(${lens.x * 100}% - 80px)`,
+                top: `calc(${lens.y * 100}% - 80px)`,
+                backgroundImage: `url("${image.url}")`,
+                backgroundSize: "200% 200%",
+                backgroundPosition: `${lens.x * 100}% ${lens.y * 100}%`,
+                backgroundRepeat: "no-repeat",
+                backgroundColor: "var(--card)",
+              }}
+            />
+          )}
+          {/* hover 遮罩提示 */}
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center pb-3 text-xs
+                           text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <span className="rounded-pill bg-black/50 px-3 py-1 backdrop-blur-sm">
+              {image.title ?? "⤢"}
+            </span>
           </span>
-        </span>
-      </button>
-    </div>
+        </button>
+      </div>
+    </BlurFade>
   );
 }
 

@@ -46,7 +46,9 @@
     "breadcrumbHome": "Home",
     "breadcrumbArticles": "Articles",
     "related": "Related Articles",
+    "relatedClose": "Close",
     "relatedTitle": "Related Articles",
+    "relatedLead": "You may also like:",
     "articleStyleDefault": "Default style",
     "notFound": "Article not found or unpublished"
   },

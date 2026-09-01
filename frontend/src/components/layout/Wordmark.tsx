@@ -2,7 +2,8 @@
  * SVG 文字 LOGO 字标（UI-Plan §3.3 静态版，light/dark 由 CSS 变量自适应）
  *
  * <p>以太光环符（外环+内环+中心点）+ AETHER 字标 + 双线饰线。
- * 颜色全部走 var(--foreground)/var(--accent)/var(--accent-2)。</p>
+ * 颜色全部走 var(--foreground)/var(--accent)/var(--accent-2)。
+ * v2.0 A5：hover 时光环内环旋转 360°（CSS 见 globals .aether-wordmark）。</p>
  */
 export default function Wordmark({height = 56}: {height?: number}) {
   return (
@@ -14,7 +15,8 @@ export default function Wordmark({height = 56}: {height?: number}) {
       aria-label="Aether"
     >
       <circle cx="180" cy="22" r="13" fill="none" stroke="var(--accent)" strokeWidth="1.5" />
-      <circle cx="180" cy="22" r="7" fill="none" stroke="var(--accent-2)" strokeWidth="1.5" />
+      {/* 内环：hover 旋转（A5） */}
+      <circle className="halo-inner" cx="180" cy="22" r="7" fill="none" stroke="var(--accent-2)" strokeWidth="1.5" />
       <circle cx="180" cy="22" r="2" fill="var(--accent)" />
       <text
         x="180"
