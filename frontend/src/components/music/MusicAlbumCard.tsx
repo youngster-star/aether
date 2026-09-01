@@ -12,7 +12,7 @@ import {useTranslations} from "next-intl";
 export default function MusicAlbumCard({album}: {album: MusicAlbumListVO}) {
   const t = useTranslations("music");
   return (
-    <Link href={`/music/${album.id}`} className="block">
+    <Link href={`/music/albums/${album.id}`} className="block">
       <article
         data-module="music"
         className="hover-card group relative h-full overflow-hidden rounded-lg border border-border shadow-aether"

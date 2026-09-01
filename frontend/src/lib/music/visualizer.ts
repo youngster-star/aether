@@ -96,14 +96,20 @@ export function createVisualizer(audio: HTMLAudioElement, initialConfig: EffectC
   let destroyed = false;
   let featureListener: ((features: AudioFeatures) => void) | null = null;
 
-  /** 粒子 worker（OffscreenCanvas 可用时） */
+  /** 粒子 worker（OffscreenCanvas 可用时；worker 内自建画布，位图回传合成） */
   let worker: Worker | null = null;
   let workerReady = false;
+  /** worker 最新回传的粒子位图（主线程合成到画布；旧位图及时 close 防泄漏） */
+  let particleBitmap: ImageBitmap | null = null;
   /** 主线程粒子（worker 不可用回退） */
   let fallbackParticles: {x: number; y: number; vx: number; vy: number; size: number}[] = [];
   let resizeObserver: ResizeObserver | null = null;
 
-  // ===== Worker 内联脚本（Blob 创建；粒子模拟 + OffscreenCanvas 绘制） =====
+  // ===== Worker 内联脚本（Blob 创建；粒子模拟 + worker 内 OffscreenCanvas 绘制 + 位图回传） =====
+  // 设计说明：不用 transferControlToOffscreen 绑定 DOM 画布（transfer 不可逆，
+  // React StrictMode 重挂载复用同一 canvas 元素会导致二次 transfer 抛
+  // InvalidStateError）。worker 自建 OffscreenCanvas，每帧 transferToImageBitmap
+  // 回传主线程 drawImage 合成，重挂载/换页均安全。
   const workerSource = `
 let canvas = null, ctx = null, params = null, particles = [];
 function seedParticles(count) {
@@ -117,12 +123,15 @@ function seedParticles(count) {
     });
   }
 }
+function resize(w, h) {
+  canvas = new OffscreenCanvas(Math.max(1, w), Math.max(1, h));
+  ctx = canvas.getContext('2d');
+}
 self.onmessage = (event) => {
   const data = event.data;
   if (data.type === 'init') {
-    canvas = data.canvas; ctx = canvas.getContext('2d');
-    params = data.params; seedParticles(params.count);
     resize(data.width, data.height);
+    params = data.params; seedParticles(params.count);
     self.postMessage({type: 'ready'});
   } else if (data.type === 'resize') {
     resize(data.width, data.height);
@@ -150,16 +159,17 @@ self.onmessage = (event) => {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+    const bitmap = canvas.transferToImageBitmap();
+    self.postMessage({type: 'bitmap', bitmap}, [bitmap]);
   }
 };
-function resize(w, h) { if (canvas) { canvas.width = w; canvas.height = h; } }
 `;
 
   function ensureWorker(): void {
-    if (worker || workerReady || destroyed) {
+    if (worker || destroyed) {
       return;
     }
-    if (typeof OffscreenCanvas === "undefined" || typeof Worker === "undefined" || !canvas) {
+    if (typeof OffscreenCanvas === "undefined" || typeof Worker === "undefined") {
       return;
     }
     try {
@@ -167,19 +177,22 @@ function resize(w, h) { if (canvas) { canvas.width = w; canvas.height = h; } }
       const url = URL.createObjectURL(blob);
       worker = new Worker(url);
       URL.revokeObjectURL(url);
-      const offscreen = canvas.transferControlToOffscreen();
       worker.onmessage = (event) => {
-        if (event.data?.type === "ready") {
+        const data = event.data;
+        if (data?.type === "ready") {
           workerReady = true;
+        } else if (data?.type === "bitmap") {
+          // 位图合成：保留最新一帧，旧位图立即 close（避免 ImageBitmap 堆积泄漏）
+          particleBitmap?.close();
+          particleBitmap = data.bitmap as ImageBitmap;
         }
       };
       worker.postMessage({
         type: "init",
-        canvas: offscreen,
         width,
         height,
         params: particleParams(currentConfig),
-      }, [offscreen]);
+      });
     } catch {
       worker = null; // worker 创建失败：回退主线程粒子
     }
@@ -209,12 +222,12 @@ function resize(w, h) { if (canvas) { canvas.width = w; canvas.height = h; } }
     if (nextWidth !== width || nextHeight !== height) {
       width = nextWidth;
       height = nextHeight;
+      // 主画布尺寸（位图方案主画布始终持有 2d 上下文）
+      canvas.width = width;
+      canvas.height = height;
+      // worker 离屏画布同步尺寸
       if (worker && workerReady) {
         worker.postMessage({type: "resize", width, height});
-      }
-      if (!worker) {
-        canvas.width = width;
-        canvas.height = height;
       }
       // 主线程回退粒子重排布
       if (!worker && ctx2d) {
@@ -457,12 +470,12 @@ function resize(w, h) { if (canvas) { canvas.width = w; canvas.height = h; } }
     const config = frameConfig(now);
     drawBackground(config);
     if (worker && workerReady) {
-      // 粒子层交给 worker（OffscreenCanvas 自动合成到主画布）
-      const payload = new Uint8Array(features.bands.length);
-      for (let i = 0; i < payload.length; i++) {
-        payload[i] = features.bands[i] * 255;
+      // 粒子层在 worker 离屏画布计算，位图回传后主线程合成（时序：本帧发数据，
+      // 上一帧位图已在 particleBitmap 中，一帧延迟无感知）
+      worker.postMessage({type: "frame", level: features.level, beat: features.beat});
+      if (particleBitmap) {
+        ctx2d.drawImage(particleBitmap, 0, 0, width, height);
       }
-      worker.postMessage({type: "frame", level: features.level, beat: features.beat}, [payload.buffer]);
     } else {
       drawFallbackParticles(config, features, dt);
     }
@@ -517,13 +530,12 @@ function resize(w, h) { if (canvas) { canvas.width = w; canvas.height = h; } }
         return;
       }
       canvas = target;
-      // transferControlToOffscreen 以运行时存在性判定（旧浏览器无此 API 时回退主线程绘制）
-      if ("transferControlToOffscreen" in canvas
-          && typeof OffscreenCanvas !== "undefined" && typeof Worker !== "undefined") {
+      // 主画布始终持有 2d 上下文（粒子层在 worker 内自建 OffscreenCanvas、
+      // 位图回传合成——不使用 transferControlToOffscreen，避免其不可逆导致
+      // StrictMode/路由复用重挂载时二次 transfer 抛 InvalidStateError）
+      ctx2d = canvas.getContext("2d");
+      if (typeof OffscreenCanvas !== "undefined" && typeof Worker !== "undefined") {
         ensureWorker();
-      }
-      if (!worker) {
-        ctx2d = canvas.getContext("2d");
       }
       resize();
       resizeObserver = new ResizeObserver(() => resize());
@@ -584,6 +596,8 @@ function resize(w, h) { if (canvas) { canvas.width = w; canvas.height = h; } }
       worker?.terminate();
       worker = null;
       workerReady = false;
+      particleBitmap?.close();
+      particleBitmap = null;
       try {
         sourceNode?.disconnect();
         analyser?.disconnect();
