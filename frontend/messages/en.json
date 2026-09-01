@@ -71,6 +71,30 @@
     "noChapters": "No chapters",
     "playError": "This video is a placeholder and cannot be played yet. The real video will be available after upload."
   },
+  "music": {
+    "listTitle": "Music",
+    "breadcrumbHome": "Home",
+    "breadcrumbMusic": "Music",
+    "customAlbums": "Custom Collections",
+    "certifiedAlbums": "Certified Albums",
+    "certification": "Certified",
+    "trackCount": "{count} tracks",
+    "searchPlaceholder": "Search title or artist",
+    "search": "Search",
+    "noResults": "No matching tracks",
+    "empty": "No music yet",
+    "play": "Play",
+    "pause": "Pause",
+    "prev": "Previous",
+    "next": "Next",
+    "progress": "Progress",
+    "volume": "Volume",
+    "lyrics": "Lyrics",
+    "noLyrics": "No lyrics",
+    "unknownArtist": "Unknown artist",
+    "offsetApplied": "Global lyric offset {offset}ms applied (adjustable in admin)",
+    "notFound": "Music not found"
+  },
   "footer": {
     "copyright": "© {year} Aether · All rights reserved",
     "slogan": "Astral stories, written on parchment"

@@ -71,6 +71,30 @@
     "noChapters": "暂无章节",
     "playError": "该视频为占位数据暂不可播放，正式视频待站长上传后替换。"
   },
+  "music": {
+    "listTitle": "音乐",
+    "breadcrumbHome": "首页",
+    "breadcrumbMusic": "音乐",
+    "customAlbums": "自定义合集",
+    "certifiedAlbums": "固定合集",
+    "certification": "认证",
+    "trackCount": "{count} 首曲目",
+    "searchPlaceholder": "搜索歌名或歌手",
+    "search": "搜索",
+    "noResults": "未找到相关曲目",
+    "empty": "暂无音乐内容",
+    "play": "播放",
+    "pause": "暂停",
+    "prev": "上一首",
+    "next": "下一首",
+    "progress": "播放进度",
+    "volume": "音量",
+    "lyrics": "歌词",
+    "noLyrics": "暂无歌词",
+    "unknownArtist": "未知歌手",
+    "offsetApplied": "歌词已应用全局偏移 {offset}ms（管理端可调）",
+    "notFound": "音乐不存在"
+  },
   "footer": {
     "copyright": "© {year} Aether · 保留所有权利",
     "slogan": "于羊皮卷上，写下星界之事"

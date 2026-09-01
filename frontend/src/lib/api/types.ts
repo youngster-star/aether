@@ -145,3 +145,60 @@ export interface VideoDetailVO {
   ext: string;
   chapters: VideoChapterVO[];
 }
+
+/** 音乐合集列表 VO（BackEnd-Plan §5.2 GET /music/albums） */
+export interface MusicAlbumListVO {
+  id: number;
+  title: string;
+  coverUrl: string | null;
+  intro: string | null;
+  /** 类型：1 自定义合集 2 固定合集 */
+  type: number;
+  /** 认证信息（固定合集展示，UI-Plan §6.6） */
+  certification: string | null;
+  trackCount: number;
+}
+
+/** 音乐单曲列表 VO（合集详情曲目/搜索/推荐通用） */
+export interface MusicListVO {
+  id: number;
+  title: string;
+  artist: string | null;
+  coverUrl: string | null;
+  /** 音频签名 URL（播放队列构建依赖，§4.4） */
+  fileUrl: string;
+  duration: number;
+  albumId: number | null;
+}
+
+/** 音乐合集详情 VO（BackEnd-Plan §5.2 GET /music/albums/{id}） */
+export interface MusicAlbumDetailVO {
+  id: number;
+  title: string;
+  coverUrl: string | null;
+  intro: string | null;
+  type: number;
+  certification: string | null;
+  tracks: MusicListVO[];
+}
+
+/** 音乐单曲详情 VO（BackEnd-Plan §5.2 GET /music/{id}） */
+export interface MusicDetailVO {
+  id: number;
+  title: string;
+  artist: string | null;
+  albumId: number | null;
+  albumTitle: string | null;
+  coverUrl: string | null;
+  /** 音频签名 URL（§4.4 防直链） */
+  fileUrl: string;
+  /** 歌词文本（LRC 时间轴 / 纯文本，可空） */
+  lyricText: string | null;
+  /** 歌词全局偏移（毫秒，正负可调） */
+  lyricOffset: number;
+  duration: number;
+  /** EffectConfig 原始 JSON（§7.3，可空=未生成） */
+  effectConfig: string | null;
+  /** 特效来源：1 生成 2 手工调整 */
+  effectSource: number;
+}
