@@ -66,6 +66,12 @@ cd frontend && npm install && npm run dev
 
 # 4. 启动 python-agent（书籍分章，可选）
 cd agent && uvicorn main:app --port 8000
+
+# 5. 演示测试数据（可选，开发阶段走通页面用；上线前清理）
+bash scripts/download-demo-media.sh   # 下载真实网络媒体到本地存储（图 7/视频 3/音频 3）
+mysql -uroot -p aether < backend/src/main/resources/db/seed-demo-data.sql
+# 清理：先执行 backend/src/main/resources/db/seed-demo-data-cleanup.sql
+#       （保留分类/标签等字典数据），再 rm -rf backend/data/storage/files/seed/
 ```
 
 管理端登录：地址 `/aether/cryptex/login`，**仅需输入密码**（即 cryptex），密码为环境变量 `AETHER_CRYPTEX` 配置（dev 环境默认 `heyqing2aether`，**生产环境必须修改**）。

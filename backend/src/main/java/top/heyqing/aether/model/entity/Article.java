@@ -29,14 +29,14 @@ public class Article extends BaseEntity {
     @Column(name = "summary", length = 500)
     private String summary;
 
-    /** HTML 内容（jsoup sanitize 后） */
+    /** HTML 内容（jsoup sanitize 后）；列类型对齐 schema-mysql.sql（Hibernate 7 对 @Lob 默认映射 tinytext 会收缩既有列） */
     @Lob
-    @Column(name = "content_html", nullable = false)
+    @Column(name = "content_html", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String contentHtml;
 
-    /** Markdown 源内容（管理端编辑回显用） */
+    /** Markdown 源内容（管理端编辑回显用）；同上对齐 schema-mysql.sql */
     @Lob
-    @Column(name = "content_md", nullable = false)
+    @Column(name = "content_md", nullable = false, columnDefinition = "MEDIUMTEXT")
     private String contentMd;
 
     /** 字数 */

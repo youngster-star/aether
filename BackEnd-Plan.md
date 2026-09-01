@@ -831,6 +831,13 @@ CREATE TABLE `ai_generation_task` (
 - `ai_config`：四个 scene 各一行默认配置（chat→cloud/DeepSeek、effect→cloud、agent→local/Ollama 优先、classify→local）
 - 仅 dev/test 环境执行，prod 不跑 seed（Stage.md 规范）
 
+**演示测试数据（阶段开发用，上线前清理）**：
+
+- 文件：`backend/src/main/resources/db/seed-demo-data.sql`（插入）+ `seed-demo-data-cleanup.sql`（删除，保留分类/标签/问卷选项/AI 配置/管理员/文章样式等字典与配置数据）
+- 媒体素材：真实网络素材（图片 webp/jpg/png 7 张、视频 mp4 3 段、音频 mp3 3 首），先执行 `bash scripts/download-demo-media.sh` 下载到本地存储 `backend/data/storage/files/seed/`（不入库）；storage_file 记录的哈希/尺寸/宽高/时长为素材实际探测值
+- ID 固定 90001+ 区间，与 DataSeeder 自增数据互不冲突；全部语句幂等（先清本区间再插入）
+- 覆盖范围：文章 11 篇（长/短/多图/站内视频链接/代码/表格/草稿/热门/独立样式）、图集 5 个（含零图片边界与同文件 ref_count=2 保活场景）、视频 4 个（有章节/无章节/无封面/同文件复用）、音乐合集 2 个 + 曲目 6 首（LRC 歌词/EffectConfig）、书籍 3 本 + 章节（章-节两级/分章任务四状态）、公告 5 条（三类型）、订阅/问卷、访问日志与日统计（逐条吻合）、操作日志、AI 会话与生成任务；字数/时长/统计等字段值彼此一致
+
 ## 7 AI 设计
 
 ### 7.1 双 Provider 架构
