@@ -141,6 +141,14 @@ public final class FileTypeValidator {
     }
 
     /**
+     * 是否音频（管理端音乐模块校验用，§8.4 音频白名单）
+     */
+    public static boolean isAudio(String ext) {
+        return "mp3".equals(ext) || "flac".equals(ext) || "wav".equals(ext)
+                || "aac".equals(ext) || "m4a".equals(ext);
+    }
+
+    /**
      * 按扩展名推断 MIME 类型（存储元数据用）
      */
     public static String mimeTypeOf(String ext) {

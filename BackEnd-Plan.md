@@ -113,7 +113,7 @@ top.heyqing.aether
 | 0 | 成功 | — |
 | 1xxxx | 通用错误 | 10001 参数错误 / 10002 资源不存在 / 10003 操作频繁 / 10004 数据校验失败 / 10005 文件类型不支持 / 10006 文件大小超限 |
 | 2xxxx | 认证错误 | 20001 未认证 / 20002 token 过期 / 20003 密码错误 / 20004 验证码错误或已过期 / 20005 账号已锁定 / 20006 refresh token 无效 |
-| 3xxxx | 业务错误 | 300xx 文章（30001 文章不存在 30002 分类不存在 30003 标签不存在 30004 样式不存在）301xx 图集 302xx 视频 303xx 音乐 304xx 书籍（30401 分章任务不存在）305xx 存储（30501 分片缺失 30502 上传会话不存在 30503 文件校验失败（合并后 SHA-256 不一致））306xx 公告 307xx 订阅（30701 邮箱格式错误 30702 该 IP 问卷已提交 30703 问卷修改次数已用完）308xx AI（30801 AI 服务不可用 30802 生成失败 30803 当日使用次数已达上限） |
+| 3xxxx | 业务错误 | 300xx 文章（30001 文章不存在 30002 分类不存在 30003 标签不存在 30004 样式不存在）301xx 图集 302xx 视频 303xx 音乐（30301 音乐不存在 30302 音乐合集不存在）304xx 书籍（30401 分章任务不存在）305xx 存储（30501 分片缺失 30502 上传会话不存在 30503 文件校验失败（合并后 SHA-256 不一致））306xx 公告 307xx 订阅（30701 邮箱格式错误 30702 该 IP 问卷已提交 30703 问卷修改次数已用完）308xx AI（30801 AI 服务不可用 30802 生成失败 30803 当日使用次数已达上限） |
 | 5xxxx | 系统错误 | 50001 系统内部错误 / 50002 存储服务异常 / 50003 AI 服务异常 / 50004 数据库异常 |
 
 ### 3.3 全局异常处理
@@ -237,8 +237,8 @@ GET /aether/api/v1/storage/file/{fileId}?expires=1785000000&sign=abc123...
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | /music/albums | 合集列表 `?type=1自定义\|2固定&page&size` |
-| GET | /music/albums/{id} | 合集详情（含歌曲列表） |
-| GET | /music | 单曲搜索 `?keyword&albumId&page&size`（仅音乐可搜索，与其他模块搜索分隔） |
+| GET | /music/albums/{id} | 合集详情（含歌曲列表：单曲条目含封面/音频签名 URL——前端播放队列构建依赖 fileUrl，2026-09-01 阶段 4 落地） |
+| GET | /music | 单曲搜索 `?keyword&albumId&page&size`（仅音乐可搜索，与其他模块搜索分隔；keyword 匹配歌名/歌手） |
 | GET | /music/{id} | 单曲详情（含歌词、时长、effectConfig） |
 | GET | /music/recommend | 推荐音乐/专辑 `?limit=3-4` |
 
@@ -870,6 +870,7 @@ POST /split-book
 
 - 输入：歌词文本、封面主色（后端 `ImageIO` 取缩略图 + k-means 提取前 3 主色）、时长、估计 BPM
 - LLM 按 EffectConfig JSON Schema 结构化输出（JSON mode），**结果存 `music.effect_config`**，管理端可预览、调参、重生成
+- **阶段 4 先行实现（2026-09-01）**：`EffectConfigService.generate` 以封面调色板（k-means 3 主色，缺封面回退羊皮卷默认色）+ 确定性规则生成粒子/波形/圆环三层（覆盖 amplitude/freqBand/beat 三类绑定，节奏参数由时长粗估 BPM 驱动），产物过 EffectConfigValidator Schema 校验后落库；**LLM 结构化生成在阶段 7 LangChain4j 双 Provider 接入后切换内部实现（接口与校验链路不变）**
 - 特殊场景（如固定合集认证页）允许 `sandboxCode` 字段携带 AI 生成的 JS，前端在 iframe sandbox 内受限执行（见 UI-Plan §8.5）
 
 EffectConfig Schema（v1）：
@@ -978,7 +979,7 @@ public interface StorageService {
 
 - 断点续传：init 返回已传分片索引，前端跳过已传分片
 - 上传会话 24h 过期（Redis TTL + 临时分片清理 job）
-- **音视频时长探测**（2026-08-27 阶段 3 落地，MediaProbeService）：首选外部 `ffprobe`（路径 `aether.media.ffprobe-path` 配置，默认 PATH 中的 `ffprobe`，生产 backend 容器内置）；ffprobe 不可用或失败时回退内置 MP4/M4A `mvhd` 原子解析（纯 Java 解析 timescale/duration，零依赖）；webm 无回退（记 0，管理端可手工补录）；探测失败均不阻断上传（duration=0 + warn 日志）
+- **音视频时长探测**（2026-08-27 阶段 3 落地，MediaProbeService；2026-09-01 阶段 4 扩展 MP3 回退）：首选外部 `ffprobe`（路径 `aether.media.ffprobe-path` 配置，默认 PATH 中的 `ffprobe`，生产 backend 容器内置）；ffprobe 不可用或失败时回退内置解析：MP4/M4A 走 `mvhd` 原子解析（Mp4DurationParser），**MP3 走帧结构解析（Mp3DurationParser：Xing/Info/VBRI 总帧数优先精确值，缺失时按 CBR 码率估算，自动跳过 ID3v1/v2 标签）**，均零依赖；webm/flac/wav/aac 无回退（记 0，管理端可手工补录）；探测失败均不阻断上传（duration=0 + warn 日志）
 - 存储选择：init 时前端传 `storageType`（1 本地/2 OSS），管理端上传控件明确展示两套选项（UI-Plan）
 
 ### 8.3 删除/修改一致性（需求明确要求）

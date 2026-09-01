@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import top.heyqing.aether.service.storage.MediaProbeService;
 import top.heyqing.aether.storage.StorageService;
+import top.heyqing.aether.util.Mp3DurationParser;
 import top.heyqing.aether.util.Mp4DurationParser;
 
 /**
@@ -35,6 +36,9 @@ public class MediaProbeServiceImpl implements MediaProbeService {
 
     /** 可走内置 mvhd 解析回退的扩展名 */
     private static final Set<String> MP4_EXTS = Set.of("mp4", "m4a");
+
+    /** 可走内置 MP3 帧结构解析回退的扩展名 */
+    private static final Set<String> MP3_EXTS = Set.of("mp3");
 
     /** ffprobe 单次探测超时 */
     private static final long FFPROBE_TIMEOUT_SECONDS = 60;
@@ -66,6 +70,9 @@ public class MediaProbeServiceImpl implements MediaProbeService {
             Integer duration = probeWithFfprobe(localPath);
             if (duration == null && MP4_EXTS.contains(normalized)) {
                 duration = Mp4DurationParser.parseSeconds(localPath);
+            }
+            if (duration == null && MP3_EXTS.contains(normalized)) {
+                duration = Mp3DurationParser.parseSeconds(localPath);
             }
             if (duration == null) {
                 log.warn("时长探测失败（ffprobe 不可用且无内置回退）: ext={}, objectKey={}", normalized, objectKey);

@@ -15,6 +15,9 @@ public interface StorageRefService {
     /** 视频业务域 */
     String BIZ_VIDEO = "video";
 
+    /** 音乐业务域（合集封面与单曲音频/封面共用，与 seed 数据同构） */
+    String BIZ_MUSIC = "music";
+
     /**
      * 登记引用（幂等：同一业务记录重复引用同一文件时 refCount 递增）
      * <p>需在业务保存事务内调用。</p>

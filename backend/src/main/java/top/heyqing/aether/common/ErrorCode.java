@@ -39,6 +39,7 @@ public enum ErrorCode {
     VIDEO_NOT_FOUND(30201, "视频不存在"),
     // 303xx 音乐
     MUSIC_NOT_FOUND(30301, "音乐不存在"),
+    MUSIC_ALBUM_NOT_FOUND(30302, "音乐合集不存在"),
     // 304xx 书籍
     SPLIT_TASK_NOT_FOUND(30401, "分章任务不存在"),
     // 305xx 存储

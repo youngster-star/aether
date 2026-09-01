@@ -32,6 +32,8 @@ public final class ApiConst {
             // 图集/视频公开接口（BackEnd-Plan §5.2，阶段 3）
             "/v1/albums/**",
             "/v1/videos/**",
+            // 音乐公开接口（BackEnd-Plan §5.2，阶段 4）
+            "/v1/music/**",
             // dev 环境调试工具（h2-console/swagger/actuator），由 SecurityConfig 按 profile 追加
     };
 }
