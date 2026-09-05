@@ -202,3 +202,53 @@ export interface MusicDetailVO {
   /** 特效来源：1 生成 2 手工调整 */
   effectSource: number;
 }
+
+/** 书籍列表项 VO（BackEnd-Plan §5.2 GET /books） */
+export interface BookListVO {
+  id: number;
+  title: string;
+  author: string | null;
+  coverUrl: string | null;
+  intro: string | null;
+  totalChapters: number;
+  isRecommend: number;
+  tags: string[];
+}
+
+/** 章-节目录树节点（书籍详情） */
+export interface ChapterNodeVO {
+  id: number;
+  title: string;
+  level: number;
+  orderNo: number;
+  wordCount: number;
+  children: ChapterNodeVO[] | null;
+}
+
+/** 书籍详情 VO（含章-节目录树） */
+export interface BookDetailVO {
+  id: number;
+  title: string;
+  author: string | null;
+  coverUrl: string | null;
+  intro: string | null;
+  ownershipType: number;
+  totalChapters: number;
+  isRecommend: number;
+  categories: string[];
+  tags: string[];
+  chapters: ChapterNodeVO[];
+}
+
+/** 章节内容 VO（排版 HTML + prev/next 全书线性序导航） */
+export interface BookChapterContentVO {
+  bookId: number;
+  chapterId: number;
+  title: string;
+  level: number;
+  orderNo: number;
+  totalChapters: number;
+  contentHtml: string;
+  prev: {chapterId: number; title: string} | null;
+  next: {chapterId: number; title: string} | null;
+}

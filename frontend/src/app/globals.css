@@ -425,3 +425,29 @@ button:hover .burger-bar-mid {
     animation: none;
   }
 }
+
+/* ===== 阶段 5 书籍阅读器（UI-Plan §6.7 / BackEnd-Plan §7.2 分段排版） ===== */
+/* 段首空两格 + 段间半行距：由后端排版 HTML 的 class 钩子（p.indent / figure-mark）保证 */
+.book-content {
+  font-size: var(--reader-font-size, 18px);
+  line-height: var(--reader-line-height, 1.8);
+  word-break: break-word;
+}
+.book-content p.indent {
+  text-indent: 2em;
+  margin: 0;
+}
+/* 段间半行距（0.5em = 半个当前字号行） */
+.book-content p.indent + p.indent {
+  margin-top: 0.5em;
+}
+/* 插图标记位（后续人工配图前以虚线框占位） */
+.book-content .figure-mark {
+  margin: 0.75em 0;
+  padding: 0.75em 1em;
+  border: 1px dashed color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
