@@ -49,6 +49,12 @@ aether:
     # 签名 URL 密钥：生产必须环境变量注入；dev 默认值见 application-dev.yml
     sign-secret: ${SIGN_SECRET:}
     sign-expire-seconds: 600
+  agent:
+    # python-agent 分章服务地址（BackEnd-Plan §7.2；仅内网可达，不可达时 Java 启发式降级）
+    base-url: ${AGENT_BASE_URL:http://localhost:8100}
+    # 连接/读取超时（秒）：LLM 精调较慢，读取放宽
+    connect-timeout-seconds: 2
+    read-timeout-seconds: 60
 
 management:
   endpoints:

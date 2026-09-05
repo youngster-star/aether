@@ -42,6 +42,10 @@ public enum ErrorCode {
     MUSIC_ALBUM_NOT_FOUND(30302, "音乐合集不存在"),
     // 304xx 书籍
     SPLIT_TASK_NOT_FOUND(30401, "分章任务不存在"),
+    BOOK_NOT_FOUND(30402, "书籍不存在"),
+    BOOK_CHAPTER_NOT_FOUND(30403, "章节不存在"),
+    SPLIT_TASK_STATE_INVALID(30404, "分章任务状态不符，请刷新后重试"),
+    BOOK_SOURCE_MISSING(30405, "书籍尚未上传 txt 源文件，无法分章"),
     // 305xx 存储
     CHUNK_MISSING(30501, "分片缺失，请先上传缺失分片"),
     UPLOAD_SESSION_NOT_FOUND(30502, "上传会话不存在或已过期"),
