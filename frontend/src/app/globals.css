@@ -99,22 +99,21 @@
   --font-mono: var(--font-jetbrains);
 }
 
-/* 纸张纹理：CSS 噪点近似羊皮纸质感（UI-Plan §2.2，pointer-events: none） */
+/* 纸张纹理：CSS 噪点近似羊皮纸质感（UI-Plan §2.2，pointer-events: none）
+   z-index: -1 → 绘制在所有内容之下（canvas 背景之上），
+   无需将 body 直接子级设为 relative（那会覆盖 Tailwind 分层的 .fixed，
+   导致 fixed 覆盖层跌回文档流挤压页面内容） */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.47 0 0 0 0 0.35 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity: .5; /* dark 下降低，避免深底噪点脏 */
 }
 .dark body::before {
   opacity: .2;
-}
-body > * {
-  position: relative;
-  z-index: 1;
 }
 
 body {
@@ -394,6 +393,22 @@ button:hover .burger-bar-mid {
 @keyframes shimmer {
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
+}
+
+/* ===== v2.0 §3.4 页脚 LOGO 氛围：光环呼吸 + 中心光晕脉冲 ===== */
+.ring-breathe {
+  animation: ring-breathe 7s ease-in-out infinite;
+}
+@keyframes ring-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+.halo-pulse {
+  animation: halo-pulse 3.2s ease-in-out infinite;
+}
+@keyframes halo-pulse {
+  0%, 100% { box-shadow: 0 0 10px 2px currentColor; }
+  50%      { box-shadow: 0 0 22px 7px currentColor; }
 }
 
 /* 全站尊重 prefers-reduced-motion（UI-Plan §2.5/§2.8：动画直接呈现最终状态） */
